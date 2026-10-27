@@ -1,0 +1,28 @@
+name: Cập nhật kết quả
+
+on:
+  schedule:
+    - cron: "*/10 11-13 * * *"
+    - cron: "30 2,15 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lấy kết quả mới
+        run: python3 server.py --sync-once || true
+      - name: Lưu thay đổi (nếu có kỳ mới)
+        run: |
+          git config user.name "vietlott-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || (git commit -m "Cập nhật kết quả" && git push)
