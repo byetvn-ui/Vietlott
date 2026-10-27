@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thống kê Vietlott 6/45 &amp; 6/55</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme:light;
+  --ink:#4a2e1f; --mute:#8a7566; --line:#f3e2c2; --cream:#fff6e0; --card:#fff;
+  --red:#d3141c; --red2:#ff5a36; --gold:#ffc233; --gold2:#ffb000; --blue:#2f6fd6;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;color:var(--ink);font:500 16px/1.5 "Nunito",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  background:linear-gradient(180deg,#ffe6d2 0,#fff3e8 320px,#fffaf5 100%) fixed;min-height:100vh;-webkit-font-smoothing:antialiased}
+.app{max-width:720px;margin:0 auto;padding:18px 14px 90px}
+h1{margin:0;font-size:24px;font-weight:900;color:var(--red);letter-spacing:-.01em}
+h2{margin:0 0 12px;font-size:21px;font-weight:900;color:var(--red)}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.pill{display:inline-flex;align-items:center;gap:7px;border:2px solid var(--line);background:#fff;border-radius:99px;padding:3px 11px;font-size:12.5px;font-weight:700;color:var(--mute)}
+.pill i{width:8px;height:8px;border-radius:50%;background:var(--mute)}
+.pill.ok i{background:#22a35a}.pill.err i{background:var(--red)}
+.card{background:var(--card);border:2px solid var(--line);border-radius:26px;padding:18px;margin-bottom:16px;box-shadow:0 6px 18px rgba(214,120,60,.08)}
+.gp{display:flex;gap:10px;margin-bottom:12px}
+.gp button{flex:1;border:2px solid var(--line);background:#fff;border-radius:99px;padding:10px 12px;font:800 16px "Nunito",sans-serif;color:var(--ink);cursor:pointer}
+.gp button[aria-pressed=true]{background:linear-gradient(135deg,#e3262b,#ff5533);color:#fff;border-color:#e3262b;box-shadow:0 5px 14px rgba(227,38,43,.3)}
+.dataline{font-size:14.5px;color:var(--mute);margin:2px 2px 10px}
+a{color:var(--red);font-weight:800}
+.rule{font-size:14.5px;color:var(--mute);border-top:2px dashed var(--line);padding-top:10px;margin-top:8px}
+
+/* live */
+.live{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:620px){.live{grid-template-columns:1fr}}
+.lc{border:2px solid var(--line);border-radius:20px;padding:13px;background:#fffbf1}
+.lc .lh{display:flex;justify-content:space-between;align-items:baseline;gap:6px;flex-wrap:wrap}
+.lc .nm{font-weight:900;font-size:17px;color:var(--red)}
+.lc .dt{font-size:13px;color:var(--mute);font-weight:700}
+.balls{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0 6px;align-items:center}
+.plus{font-weight:900;color:var(--mute)}
+.nx{font-size:13.5px;color:var(--mute);margin-top:6px}.nx b{color:var(--ink);font-variant-numeric:tabular-nums}
+.badge{display:inline-block;font-size:12px;font-weight:800;padding:2px 10px;border-radius:99px;background:var(--cream);color:var(--mute)}
+.badge.new{background:#22a35a;color:#fff}.badge.wait{background:var(--gold2);color:#4a2e1f;animation:pulse 1.3s infinite}
+@keyframes pulse{50%{opacity:.55}}
+.btn{border:2px solid var(--line);background:#fff;color:var(--ink);border-radius:99px;padding:8px 16px;font:800 14px "Nunito",sans-serif;cursor:pointer}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.red{background:linear-gradient(135deg,#e3262b,#ff5533);color:#fff;border-color:transparent;font-size:17px;padding:11px 24px;box-shadow:0 6px 14px rgba(227,38,43,.28)}
+.btn.gold{background:linear-gradient(135deg,#ffcf55,#ffb82e);border-color:transparent}
+.btn.ghost{background:#fff}
+
+/* balls */
+.ball{width:42px;height:42px;border-radius:50%;display:inline-grid;place-items:center;font-weight:900;font-size:16px;color:#fff;font-variant-numeric:tabular-nums;
+  background:radial-gradient(circle at 32% 28%,#ff8a7a,#e0222a 62%,#b3121a);box-shadow:0 3px 6px rgba(190,20,30,.3);flex:none}
+.ball.blue{background:radial-gradient(circle at 32% 28%,#8bbcff,#3a78de 62%,#2457b3);box-shadow:0 3px 6px rgba(40,90,190,.3)}
+.ball.dash{background:#fff7de;border:2.5px dashed var(--gold2);color:#c98a00;box-shadow:none}
+.ball.plain{background:#fff;border:2px solid var(--line);color:var(--ink);box-shadow:none}
+.ball.gold{background:radial-gradient(circle at 32% 28%,#ffe58a,#ffbf2a 65%,#e29a00);color:#3d2a00;box-shadow:0 3px 6px rgba(220,150,0,.3)}
+.ball.sm{width:32px;height:32px;font-size:13.5px}
+.ball.hit{outline:3px solid #22a35a;outline-offset:1px}
+.ball.miss{opacity:.35}
+
+/* tabs */
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:4px 0 14px}
+.tab{border:2px solid var(--line);background:#fff;border-radius:22px;padding:10px 2px;font:800 15px/1.2 "Nunito",sans-serif;color:var(--ink);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;min-height:74px;justify-content:center}
+.tab .e{font-size:22px}
+.tab[aria-selected=true]{background:linear-gradient(180deg,#ffd45c,#ffb82e);border-color:#e6a100;box-shadow:0 5px 12px rgba(230,161,0,.35)}
+
+/* controls */
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.row label{font-size:17px}
+select,input[type=number],input[type=text]{font:600 16px "Nunito",sans-serif;color:var(--ink);background:#fff;border:2px solid var(--line);border-radius:16px;padding:9px 12px;max-width:100%}
+input[type=number]{width:110px}
+select:focus,input:focus{outline:2px solid var(--gold2);outline-offset:1px}
+.hint{color:var(--mute);font-size:15px;margin:4px 0 12px}
+.modes{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.mode{border:2px solid var(--line);background:#fff;border-radius:99px;padding:9px 16px;font:800 16px "Nunito",sans-serif;color:var(--ink);cursor:pointer}
+.mode[aria-pressed=true]{background:linear-gradient(135deg,#e3262b,#ff5533);color:#fff;border-color:transparent;box-shadow:0 5px 12px rgba(227,38,43,.28)}
+
+/* highlight cards */
+.hl{border:2px solid;border-radius:22px;padding:13px 14px;margin-bottom:12px}
+.hl.most{background:#fff0f0;border-color:#ffb9b4}.hl.least{background:#eef4ff;border-color:#b9cffa}.hl.gap{background:#fff6dc;border-color:#ffd77a}
+.hlh{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.hlh b{font-size:19px;font-weight:900}
+.copy{border:2px solid var(--line);background:#fff;border-radius:99px;padding:6px 14px;font:800 14px "Nunito",sans-serif;color:var(--ink);cursor:pointer}
+.hlb{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;text-align:center}
+.hlb .ball{width:min(46px,100%);height:auto;aspect-ratio:1;margin:0 auto}
+.hlb .v{display:block;font-size:15px;font-weight:700;color:var(--mute);margin-top:6px;font-variant-numeric:tabular-nums}
+
+/* table */
+table{width:100%;border-collapse:collapse}
+th{font-size:14px;font-weight:800;color:var(--mute);text-transform:uppercase;letter-spacing:.06em;text-align:left;padding:10px 6px;border-bottom:3px solid var(--line)}
+td{padding:9px 6px;border-bottom:1.5px solid #f8ecd6;vertical-align:middle}
+td.c{font-weight:900;font-size:18px;font-variant-numeric:tabular-nums}td.c small{font-weight:600;font-size:14px;color:var(--mute)}
+td.rk{color:var(--mute);font-weight:700;width:34px}
+.meter{height:10px;border-radius:99px;background:#fbefd9;overflow:hidden;min-width:70px}
+.meter i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#ffc233,#ff5a36 60%,#d3141c)}
+.pc{font-size:12.5px;color:var(--mute);font-weight:700;margin-top:2px}
+
+/* pick */
+.pickbox{border:2px solid var(--line);border-radius:22px;padding:14px;margin-bottom:12px;background:#fffbf1}
+.slots{display:flex;gap:9px;flex-wrap:wrap;margin:6px 0 12px}
+.slot{width:46px;height:46px;border-radius:50%;background:#fbefce;display:grid;place-items:center;color:#d7bf8b;font-weight:900;font-size:19px}
+.slot.on{background:radial-gradient(circle at 32% 28%,#ff8a7a,#e0222a 62%,#b3121a);color:#fff}
+.nums{display:grid;grid-template-columns:repeat(6,1fr);gap:7px;margin:12px 0}
+.nums button{border:2px solid var(--line);background:#fff;border-radius:14px;padding:11px 0;font:800 18px "Nunito",sans-serif;color:var(--ink);cursor:pointer;font-variant-numeric:tabular-nums}
+.nums button[aria-pressed=true]{background:linear-gradient(135deg,#e3262b,#ff5533);color:#fff;border-color:transparent}
+.flex{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.grow{flex:1;min-width:150px}
+.ticket{border:2px solid var(--line);border-radius:20px;padding:12px;margin-bottom:10px;background:#fff}
+.ticket .tl{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.tier{display:flex;justify-content:space-between;font-size:15px;padding:5px 0;border-bottom:1.5px dashed #f3e2c2}
+.tier b{font-variant-numeric:tabular-nums}
+.chip{border:2px solid var(--line);background:#fff;border-radius:99px;padding:4px 12px;font:800 14px "Nunito",sans-serif;cursor:pointer;color:var(--ink)}
+.res{background:linear-gradient(180deg,#fff4f0,#fff);border:2px solid #ffc9bd;border-radius:22px;padding:16px;margin-top:14px}
+.res .balls{margin:8px 0}
+.note{font-size:14.5px;color:var(--mute);background:#fff6e0;border-radius:16px;padding:11px 14px;margin-top:14px}.note b{color:var(--ink)}
+details{margin-top:14px}summary{cursor:pointer;font-weight:800;color:var(--red)}
+.foot{text-align:center;color:var(--mute);font-size:14.5px;margin-top:22px;padding:0 6px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(30px);background:#22a35a;color:#fff;padding:12px 18px;border-radius:18px;font-weight:800;opacity:0;transition:.3s;pointer-events:none;z-index:20;max-width:92vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%)}
+.fab{position:fixed;right:16px;bottom:18px;width:54px;height:54px;border-radius:50%;border:0;background:linear-gradient(135deg,#e3262b,#ff5533);color:#fff;font-size:20px;box-shadow:0 8px 18px rgba(227,38,43,.4);cursor:pointer;z-index:10}
+[hidden]{display:none!important}
+@media(max-width:460px){.ball{width:38px;height:38px;font-size:15px}.nums{gap:5px}.tab{font-size:14px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <h1>🎰 Thống kê Vietlott</h1>
+    <span class="pill" id="srv"><i></i><span>Đang tải…</span></span>
+  </div>
+
+  <div class="card" style="padding:14px">
+    <div class="gp" id="gp">
+      <button data-g="645">Mega 6/45</button>
+      <button data-g="655">Power 6/55</button>
+    </div>
+    <div class="dataline" id="dataline"></div>
+    <div class="rule">📖 Mới chơi? Xem <a href="https://vietlott.vn" target="_blank" rel="noopener">luật chơi &amp; cơ cấu giải thưởng chính thức</a> trên trang Vietlott.</div>
+  </div>
+
+  <div class="card">
+    <div class="flex" style="justify-content:space-between;margin-bottom:10px">
+      <div><h2 style="margin:0">📡 Kết quả mới nhất</h2>
+        <div class="hint" style="margin:2px 0 0">Quay 18:00 · 6/55: T3-T5-T7 · 6/45: T4-T6-CN</div></div>
+      <button class="btn" id="syncBtn" hidden>🔄 Kiểm tra ngay</button>
+    </div>
+    <div class="live" id="live"></div>
+  </div>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab" data-t="check"><span class="e">🔍</span>Dò số</button>
+    <button class="tab" data-t="stats"><span class="e">📊</span>Thống kê</button>
+    <button class="tab" data-t="pred"><span class="e">🎯</span>Dự đoán</button>
+    <button class="tab" data-t="hist"><span class="e">🗂️</span>Kết quả</button>
+  </nav>
+
+  <!-- DÒ SỐ -->
+  <div class="card" id="t-check" hidden>
+    <h2>Chọn bộ số của bạn</h2>
+    <div class="pickbox">
+      <div class="hint" id="pickHint" style="margin:0"></div>
+      <div class="slots" id="slots"></div>
+      <div class="flex" style="justify-content:flex-end">
+        <button class="btn" id="rndBtn">🎲 Ngẫu nhiên</button><button class="btn ghost" id="clrBtn">Xoá</button>
+      </div>
+      <div class="nums" id="nums"></div>
+      <div class="flex"><input type="text" id="paste" class="grow" placeholder='Dán nhanh: "6 17 23 24 32 42"'><button class="btn" id="applyBtn">Áp dụng</button></div>
+    </div>
+    <div class="flex" style="margin-bottom:12px">
+      <button class="btn gold" id="addBtn">➕ Thêm vào danh sách dò</button>
+      <button class="btn red" id="goBtn">🔍 Dò số</button>
+      <button class="btn" id="favBtn">💾 Lưu yêu thích</button>
+    </div>
+    <div id="favs"></div>
+    <div id="tickets"></div>
+    <div id="checkRes"></div>
+  </div>
+
+  <!-- THỐNG KÊ -->
+  <div class="card" id="t-stats" hidden>
+    <h2 id="stTitle"></h2>
+    <div class="row"><label for="range">Phạm vi:</label>
+      <select id="range">
+        <option value="all">Tất cả các kỳ</option><option value="10">10 kỳ gần nhất</option>
+        <option value="100">100 kỳ gần nhất</option><option value="1000">1000 kỳ gần nhất</option>
+      </select></div>
+    <div class="row"><label for="sort">Sắp xếp:</label>
+      <select id="sort"><option value="desc">Ra nhiều nhất trước</option><option value="asc">Ra ít nhất trước</option></select></div>
+    <div class="hint" id="stSum"></div>
+    <div class="modes" id="modes"></div>
+    <div id="hls"></div>
+    <table><thead><tr><th>#</th><th>Số</th><th>Số lần ra</th><th>Tỷ lệ</th></tr></thead><tbody id="stBody"></tbody></table>
+  </div>
+
+  <!-- DỰ ĐOÁN -->
+  <div class="card" id="t-pred" hidden>
+    <h2 id="prTitle"></h2>
+    <p class="hint">Chọn công thức, trang sẽ tính ra bộ số từ dữ liệu lịch sử. Tính năng giải trí thôi nha — xổ số là ngẫu nhiên, kỳ trước không ảnh hưởng kỳ sau! 😄</p>
+    <div class="row"><label for="predN">Số kỳ gần nhất:</label><input type="number" id="predN" min="5" value="20"><span class="hint" id="predOf" style="margin:0"></span></div>
+    <div class="row"><label for="predM">Phương thức:</label><select id="predM"></select></div>
+    <button class="btn red" id="predBtn">✨ Dự đoán</button>
+    <div class="hint" id="predDesc" style="margin-top:12px"></div>
+    <div class="res" id="predRes"></div>
+    <h2 style="font-size:18px;margin-top:22px">📋 Bảng dự đoán đủ phương pháp</h2>
+    <table><thead><tr><th>Phương pháp</th><th>Bộ số</th></tr></thead><tbody id="predAll"></tbody></table>
+    <details><summary>Kiểm chứng ngược – các cách này có thật sự hiệu quả?</summary>
+      <p class="hint" id="btSub"></p>
+      <table><thead><tr><th>Phương pháp</th><th>Số trúng / kỳ</th><th>So với ngẫu nhiên</th></tr></thead><tbody id="bt"></tbody></table>
+    </details>
+    <div class="note"><b>Lưu ý thẳng thắn:</b> mỗi kỳ quay độc lập – mọi bộ 6 số có xác suất trúng như nhau. Bảng kiểm chứng ngược cho thấy các công thức này không khác ngẫu nhiên đáng kể.</div>
+  </div>
+
+  <!-- KẾT QUẢ -->
+  <div class="card" id="t-hist" hidden>
+    <h2 id="hsTitle"></h2>
+    <table><tbody id="hsBody"></tbody></table>
+  </div>
+
+  <div class="foot">Dữ liệu từ 2 file .ods của bạn, tự cập nhật từ ketquadientoan.com. Website không liên kết với Vietlott; mọi kết quả, thống kê và dự đoán chỉ mang tính tham khảo, giải trí — không phải căn cứ trả thưởng.</div>
+</div>
+<button class="fab" id="fab" aria-label="Lên đầu trang">▲</button>
+<div class="toast" id="toast"></div>
+
+<script src="data.js" onerror="void 0"></script>
+<script>
+"use strict";
+const G = {
+  "655": {name: "Power 6/55", max: 55, bonus: true,  days: [2,4,6]},
+  "645": {name: "Mega 6/45",  max: 45, bonus: false, days: [3,5,0]}
+};
+const WD = ["CN","T2","T3","T4","T5","T6","T7"];
+const S = {game: "655", tab: "stats", range: "all", sort: "desc", mode: "main", predN: 20, predM: "pos", seed: 0, pick: [], tickets: []};
+let DATA = null, STATUS = null, serverMode = false;
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pad = n => String(n).padStart(2, "0");
+const fmtDate = iso => { const [y,m,d] = iso.split("-"); return `${d}/${m}/${y}`; };
+const wdOf = iso => { const [y,m,d] = iso.split("-").map(Number); return WD[new Date(Date.UTC(y,m-1,d)).getUTCDay()]; };
+const rowsOf = g => DATA.games[g].rows;
+const ball = (n, cls = "") => `<span class="ball ${cls}">${pad(n)}</span>`;
+const ballsHtml = (r, cls = "") => r.n.map(n => ball(n, cls)).join("") + (r.b ? `<span class="plus">+</span>${ball(r.b, "gold " + cls)}` : "");
+const vi = n => n.toLocaleString("vi");
+function store(k, v) { try { if (v === undefined) return JSON.parse(localStorage.getItem(k) || "null"); localStorage.setItem(k, JSON.stringify(v)); } catch (e) { return null; } }
+
+function nowVN() { const d = new Date(); return new Date(d.getTime() + (420 + d.getTimezoneOffset()) * 60000); }
+const isoOf = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+
+/* ───────── Kết quả realtime ───────── */
+function nextDraw(g, now) {
+  for (let i = 0; i < 8; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i, 18, 0, 0);
+    if (G[g].days.includes(d.getDay()) && d > now) return d;
+  }
+}
+function renderLive() {
+  const now = nowVN(), today = isoOf(now);
+  $("#live").innerHTML = ["655", "645"].map(g => {
+    const r = rowsOf(g)[0];
+    const waiting = G[g].days.includes(now.getDay()) && now.getHours() >= 18 && r.d < today;
+    let nx;
+    if (waiting) nx = `<span class="badge wait">⏳ Đang chờ kết quả hôm nay…</span>${serverMode ? " <span style='font-size:12.5px'>tự kiểm tra mỗi phút</span>" : ""}`;
+    else {
+      const t = nextDraw(g, now), ms = t - now, h = Math.floor(ms / 3600000), m = Math.floor(ms % 3600000 / 60000), s = Math.floor(ms % 60000 / 1000);
+      nx = `Kỳ tới: <b>${WD[t.getDay()]}, ${pad(t.getDate())}/${pad(t.getMonth()+1)} 18:00</b> · còn <b>${h >= 24 ? Math.floor(h / 24) + " ngày " : ""}${h % 24}g ${pad(m)}p ${pad(s)}s</b>`;
+    }
+    return `<div class="lc"><div class="lh"><span class="nm">${G[g].name}</span>
+      <span class="dt">${wdOf(r.d)}, ${fmtDate(r.d)} ${r.d === today ? '<span class="badge new">Hôm nay</span>' : ""}</span></div>
+      <div class="balls">${ballsHtml(r)}</div>
+      <div class="dt">Jackpot${g === "655" ? " 1" : ""}: <b style="color:var(--ink)">${esc(r.j) || "—"}</b></div>
+      <div class="nx">${nx}</div></div>`;
+  }).join("");
+}
+
+/* ───────── Thống kê ───────── */
+const numsOf = (r, mode) => mode === "bonus" ? (r.b ? [r.b] : []) : mode === "both" && r.b ? r.n.concat([r.b]) : r.n;
+function computeStats(g, range, mode) {
+  const rows = rowsOf(g), max = G[g].max;
+  const sub = range === "all" ? rows : rows.slice(0, +range);
+  const cnt = new Array(max + 1).fill(0), gap = new Array(max + 1).fill(-1);
+  for (const r of sub) for (const n of numsOf(r, mode)) cnt[n]++;
+  rows.forEach((r, i) => { for (const n of numsOf(r, mode)) if (gap[n] < 0) gap[n] = i; });
+  const list = [];
+  for (let n = 1; n <= max; n++) list.push({n, c: cnt[n], gap: gap[n] < 0 ? rows.length : gap[n]});
+  return {list, sub};
+}
+function renderStats() {
+  const g = S.game, max = G[g].max;
+  if (!G[g].bonus) S.mode = "main";
+  const modeLabel = {main: `Thống kê số chính (1–${max})`, bonus: "Thống kê số phụ", both: "Cả số chính + số phụ"};
+  $("#stTitle").textContent = `📊 Thống kê tần suất — ${G[g].name}`;
+  $("#modes").innerHTML = (G[g].bonus ? ["main", "bonus", "both"] : ["main"]).map(m =>
+    `<button class="mode" data-m="${m}" aria-pressed="${S.mode === m}">${m === "main" ? "🔴 " : m === "bonus" ? "🟡 " : "⚪ "}${modeLabel[m]}</button>`).join("");
+  const {list, sub} = computeStats(g, S.range, S.mode);
+  $("#stSum").textContent = sub.length ? `Thống kê trên ${vi(sub.length)} kỳ (${fmtDate(sub[sub.length - 1].d)} → ${fmtDate(sub[0].d)}).` : "Chưa có dữ liệu.";
+  const byMost = list.slice().sort((a, b) => b.c - a.c || a.n - b.n);
+  const byLeast = list.slice().sort((a, b) => a.c - b.c || a.n - b.n);
+  const byGap = list.slice().sort((a, b) => b.gap - a.gap || a.n - b.n);
+  const hl = (cls, title, items, ballCls, val) => `<div class="hl ${cls}"><div class="hlh"><b>${title}</b>
+      <button class="copy" data-nums="${items.map(x => pad(x.n)).join(" ")}">📋 Copy</button></div>
+      <div class="hlb">${items.map(x => `<div>${ball(x.n, ballCls)}<span class="v">${val(x)}</span></div>`).join("")}</div></div>`;
+  $("#hls").innerHTML =
+    hl("most", "🔥 Ra nhiều nhất", byMost.slice(0, 6), "", x => x.c) +
+    hl("least", "🧊 Ra ít nhất", byLeast.slice(0, 6), "blue", x => x.c) +
+    hl("gap", "⏳ Lâu chưa ra", byGap.slice(0, 6), "dash", x => x.gap + " kỳ");
+  const ordered = S.sort === "desc" ? byMost : byLeast, mx = Math.max(...list.map(x => x.c), 1);
+  $("#stBody").innerHTML = ordered.map((x, i) => `<tr><td class="rk">${i + 1}</td><td>${ball(x.n, "plain")}</td>
+    <td class="c">${x.c} <small>/ ${vi(sub.length)} kỳ</small><div class="pc">${x.gap === 0 ? "vừa ra kỳ gần nhất" : "vắng " + x.gap + " kỳ"}</div></td>
+    <td style="width:32%"><div class="meter"><i style="width:${(x.c / mx * 100).toFixed(1)}%"></i></div><div class="pc">${sub.length ? (x.c / sub.length * 100).toFixed(1) : 0}%</div></td></tr>`).join("");
+}
+
+/* ───────── Dự đoán ───────── */
+function mulberry32(a) { return function() { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function topK(score, max, k = 6) {
+  const ids = Array.from({length: max}, (_, i) => i + 1);
+  ids.sort((a, b) => score[b] - score[a] || a - b);
+  return ids.slice(0, k).sort((a, b) => a - b);
+}
+function zs(arr, max) {
+  const v = arr.slice(1, max + 1), m = v.reduce((s, x) => s + x, 0) / max, sd = Math.sqrt(v.reduce((s, x) => s + (x - m) * (x - m), 0) / max) || 1;
+  return arr.map(x => (x - m) / sd);
+}
+function posMean(rows, max, N) {
+  const w = rows.slice(0, N), out = [];
+  for (let i = 0; i < 6; i++) out.push(Math.round(w.reduce((s, r) => s + r.n.slice().sort((a, b) => a - b)[i], 0) / w.length));
+  for (let i = 0; i < 6; i++) out[i] = Math.max(out[i], i ? out[i - 1] + 1 : 1);
+  for (let i = 5; i >= 0; i--) out[i] = Math.min(out[i], max - (5 - i));
+  return out;
+}
+function detMethods(rows, max, N) {
+  const fN = new Array(max + 1).fill(0), fAll = new Array(max + 1).fill(0), gap = new Array(max + 1).fill(-1);
+  rows.forEach((r, i) => { for (const n of r.n) { fAll[n]++; if (i < N) fN[n]++; if (gap[n] < 0) gap[n] = i; } });
+  for (let n = 1; n <= max; n++) if (gap[n] < 0) gap[n] = rows.length;
+  const a = zs(fN, max), b = zs(fAll, max), c = zs(gap, max);
+  const bal = a.map((_, i) => .4 * a[i] + .3 * b[i] + .3 * c[i]);
+  return {pos: posMean(rows, max, N), hot: topK(fN.map((x, i) => x * 1000 + fAll[i]), max), cold: topK(gap, max), all: topK(fAll, max), bal: topK(bal, max), fN};
+}
+function weightedPick(weights, max, rnd, k = 6) {
+  const w = weights.slice(), out = [];
+  while (out.length < k) {
+    let tot = 0; for (let n = 1; n <= max; n++) tot += w[n];
+    let x = rnd() * tot, pick = max;
+    for (let n = 1; n <= max; n++) { x -= w[n]; if (x <= 0) { pick = n; break; } }
+    out.push(pick); w[pick] = 0;
+  }
+  return out.sort((a, b) => a - b);
+}
+const METHODS = [
+  ["pos",  "Trung bình cộng theo vị trí", "Xếp mỗi kỳ từ nhỏ đến lớn, lấy trung bình cộng của từng vị trí trong N kỳ gần nhất."],
+  ["hot",  "Số nóng (ra nhiều nhất trong N kỳ)", "6 số xuất hiện nhiều nhất trong N kỳ gần nhất."],
+  ["cold", "Số lâu chưa ra", "6 số vắng mặt lâu nhất tính đến hiện tại."],
+  ["all",  "Tần suất toàn thời gian", "6 số ra nhiều nhất từ kỳ đầu tiên đến nay."],
+  ["bal",  "Điểm tổng hợp", "40% nóng trong N kỳ + 30% toàn thời gian + 30% lâu chưa ra."],
+  ["wr",   "Ngẫu nhiên có trọng số", "Bốc ngẫu nhiên, số ra nhiều trong N kỳ dễ được chọn hơn."],
+  ["rnd",  "Ngẫu nhiên thuần", "Bốc ngẫu nhiên hoàn toàn đều."]
+];
+const setInfo = s => `Tổng ${s.reduce((a, b) => a + b, 0)} · ${s.filter(x => x % 2 === 0).length} chẵn / ${s.filter(x => x % 2).length} lẻ`;
+function renderPred() {
+  const g = S.game, rows = rowsOf(g), max = G[g].max;
+  const N = Math.max(5, Math.min(rows.length, +S.predN || 20));
+  $("#prTitle").textContent = `🎯 Dự đoán số — ${G[g].name}`;
+  $("#predOf").textContent = `/ ${vi(rows.length)} kỳ`;
+  $("#predM").innerHTML = METHODS.map(([k, n]) => `<option value="${k}" ${S.predM === k ? "selected" : ""}>${n}</option>`).join("");
+  const d = detMethods(rows, max, N);
+  const rnd = mulberry32((+rows[0].d.replace(/-/g, "") + S.seed * 7919) >>> 0);
+  const sets = {pos: d.pos, hot: d.hot, cold: d.cold, all: d.all, bal: d.bal,
+    wr: weightedPick(d.fN.map(x => x + 1), max, rnd), rnd: weightedPick(new Array(max + 1).fill(1), max, rnd)};
+  const m = METHODS.find(x => x[0] === S.predM), s = sets[S.predM];
+  $("#predDesc").textContent = m[2];
+  $("#predRes").innerHTML = `<b style="font-size:18px">Bộ số gợi ý cho kỳ tiếp theo</b>
+    <div class="balls">${s.map(n => ball(n)).join("")}</div>
+    <div class="flex" style="justify-content:space-between"><span class="hint" style="margin:0">${setInfo(s)}</span>
+    <span class="flex"><button class="copy" data-nums="${s.map(pad).join(" ")}">📋 Copy</button><button class="copy" id="toCheck">🔍 Dò bộ này</button></span></div>`;
+  $("#predAll").innerHTML = METHODS.map(([k, n]) => `<tr><td><b>${n.replace(/ \(.*\)/, "")}</b><div class="pc">${setInfo(sets[k])}</div></td><td><div class="flex" style="gap:5px">${sets[k].map(x => ball(x, "sm")).join("")}</div></td></tr>`).join("");
+
+  const T = 300, tot = {pos: 0, hot: 0, cold: 0, all: 0, bal: 0}; let cnt = 0;
+  for (let t = 0; t < T && t + 200 < rows.length; t++) {
+    const mm = detMethods(rows.slice(t + 1), max, N), act = new Set(rows[t].n);
+    for (const k in tot) tot[k] += mm[k].filter(x => act.has(x)).length;
+    cnt++;
+  }
+  const base = 36 / max;
+  $("#btSub").textContent = `Thử dự đoán lại ${cnt} kỳ gần nhất, mỗi kỳ chỉ dùng dữ liệu trước đó (N = ${N}). Chọn ngẫu nhiên kỳ vọng ${base.toFixed(3)} số trúng / kỳ.`;
+  $("#bt").innerHTML = METHODS.slice(0, 5).map(([k, n]) => { const a = cnt ? tot[k] / cnt : 0, df = (a / base - 1) * 100;
+    return `<tr><td>${n.replace(/ \(.*\)/, "")}</td><td class="c" style="font-size:16px">${a.toFixed(3)}</td><td class="c" style="font-size:16px">${df >= 0 ? "+" : ""}${df.toFixed(1)}%</td></tr>`; }).join("");
+  $("#toCheck")?.addEventListener("click", () => { S.pick = s.slice(); setTab("check"); });
+}
+
+/* ───────── Dò số ───────── */
+const TIERS = g => G[g].bonus ? [["j1", "Jackpot 1 (6 số)"], ["j2", "Jackpot 2 (5 số + số phụ)"], ["m5", "Giải nhất (5 số)"], ["m4", "Giải nhì (4 số)"], ["m3", "Giải ba (3 số)"]]
+                              : [["j1", "Jackpot (6 số)"], ["m5", "Giải nhất (5 số)"], ["m4", "Giải nhì (4 số)"], ["m3", "Giải ba (3 số)"]];
+function checkTicket(g, t) {
+  const rows = rowsOf(g), set = new Set(t), tiers = {};
+  rows.forEach(r => {
+    const m = r.n.filter(x => set.has(x)).length;
+    const k = m === 6 ? "j1" : (m === 5 && G[g].bonus && r.b && set.has(r.b)) ? "j2" : m >= 3 ? "m" + m : null;
+    if (k) { (tiers[k] ||= {c: 0, last: r.d}).c++; }
+  });
+  const l = rows[0], hit = l.n.filter(x => set.has(x));
+  return {tiers, latest: l, hit, bonusHit: l.b && set.has(l.b)};
+}
+function renderPick() {
+  const g = S.game, max = G[g].max;
+  S.pick = S.pick.filter(n => n <= max);
+  $("#pickHint").textContent = `Cần chọn 6 số (1–${max}) · đã chọn ${S.pick.length}/6`;
+  const sorted = S.pick.slice().sort((a, b) => a - b);
+  $("#slots").innerHTML = Array.from({length: 6}, (_, i) => `<span class="slot ${sorted[i] ? "on" : ""}">${sorted[i] ? pad(sorted[i]) : "?"}</span>`).join("");
+  $("#nums").innerHTML = Array.from({length: max}, (_, i) => `<button data-n="${i + 1}" aria-pressed="${S.pick.includes(i + 1)}">${pad(i + 1)}</button>`).join("");
+  $("#addBtn").disabled = S.pick.length !== 6;
+  const fav = store("fav" + g) || [];
+  $("#favs").innerHTML = fav.length ? `<div class="hint" style="margin:0 0 6px">💾 Yêu thích (bấm để chọn, ✕ để xoá):</div><div class="flex" style="margin-bottom:12px">${fav.map((f, i) =>
+    `<span class="flex" style="gap:2px"><button class="chip" data-fav="${i}">${f.map(pad).join(" ")}</button><button class="chip" data-delfav="${i}">✕</button></span>`).join("")}</div>` : "";
+  $("#tickets").innerHTML = S.tickets.length ? `<div class="hint" style="margin:0 0 6px">Danh sách dò (${S.tickets.length}):</div>` + S.tickets.map((t, i) =>
+    `<div class="ticket"><div class="tl"><div class="flex" style="gap:5px">${t.map(n => ball(n, "sm")).join("")}</div><button class="chip" data-deltk="${i}">✕ Bỏ</button></div></div>`).join("") : "";
+}
+function runCheck() {
+  const g = S.game, list = S.tickets.slice();
+  const cur = S.pick.slice().sort((a, b) => a - b);
+  if (cur.length === 6 && !list.some(t => t.join() === cur.join())) list.push(cur);
+  if (!list.length) { toast("Hãy chọn đủ 6 số trước nhé", true); return; }
+  const rows = rowsOf(g);
+  $("#checkRes").innerHTML = list.map(t => {
+    const c = checkTicket(g, t), set = new Set(t);
+    const tr = TIERS(g).map(([k, n]) => `<div class="tier"><span>${n}</span><b>${c.tiers[k] ? c.tiers[k].c + " lần · gần nhất " + fmtDate(c.tiers[k].last) : "chưa từng"}</b></div>`).join("");
+    return `<div class="res"><div class="balls" style="margin-top:0">${t.map(n => ball(n, "sm " + (c.latest.n.includes(n) ? "hit" : ""))).join("")}</div>
+      <div class="hint" style="margin:0 0 8px">Kỳ mới nhất ${fmtDate(c.latest.d)}: trúng <b>${c.hit.length}</b> số${c.hit.length ? " (" + c.hit.map(pad).join(", ") + ")" : ""}${c.bonusHit ? " + số phụ" : ""}.</div>
+      ${tr}<div class="pc" style="margin-top:6px">Đối chiếu với ${vi(rows.length)} kỳ từ ${fmtDate(rows[rows.length - 1].d)}.</div></div>`;
+  }).join("");
+}
+function parsePaste(txt) {
+  const max = G[S.game].max, out = [];
+  (txt.match(/\d+/g) || []).map(Number).forEach(n => { if (n >= 1 && n <= max && !out.includes(n) && out.length < 6) out.push(n); });
+  return out;
+}
+
+/* ───────── Kết quả ───────── */
+function renderHist() {
+  const g = S.game;
+  $("#hsTitle").textContent = `🗂️ 20 kỳ gần nhất — ${G[g].name}`;
+  $("#hsBody").innerHTML = rowsOf(g).slice(0, 20).map(r => `<tr><td style="white-space:nowrap;font-weight:800;font-size:14px">${wdOf(r.d)}<br>${fmtDate(r.d)}</td>
+    <td><div class="flex" style="gap:5px">${ballsHtml(r, "sm")}</div></td><td style="text-align:right;font-weight:800;font-size:14px;white-space:nowrap">${esc(r.j)}</td></tr>`).join("");
+}
+
+/* ───────── Điều khiển chung ───────── */
+function setTab(t) {
+  S.tab = t;
+  document.querySelectorAll(".tab").forEach(b => b.setAttribute("aria-selected", b.dataset.t === t));
+  for (const k of ["check", "stats", "pred", "hist"]) $("#t-" + k).hidden = k !== t;
+  if (t === "check") renderPick(); if (t === "stats") renderStats(); if (t === "pred") renderPred(); if (t === "hist") renderHist();
+}
+function setGame(g) {
+  S.game = g; S.mode = "main"; S.pick = []; S.tickets = []; $("#checkRes").innerHTML = "";
+  document.querySelectorAll("#gp button").forEach(b => b.setAttribute("aria-pressed", b.dataset.g === g));
+  renderTop(); setTab(S.tab);
+}
+function renderTop() {
+  const rows = rowsOf(S.game);
+  $("#dataline").innerHTML = `Dữ liệu: <b>${vi(rows.length)} kỳ</b> (${rows[rows.length - 1].d} → ${rows[0].d}) · ${serverMode || location.protocol.startsWith("http") ? "tự cập nhật" : "dữ liệu tĩnh"} · <a href="#" id="reload">Tải lại mới nhất</a>`;
+  $("#reload").onclick = async e => { e.preventDefault(); if (serverMode) await pull(true); else { await pullStatic(); toast("Đã tải lại dữ liệu mới nhất"); } };
+  renderLive();
+}
+function setPill() {
+  const el = $("#srv"), t = el.querySelector("span");
+  el.className = "pill"; el.title = "";
+  if (!serverMode) { t.textContent = location.protocol.startsWith("http") ? "Dữ liệu tự cập nhật sau mỗi kỳ quay" : "Đang xem file tĩnh – không tự cập nhật"; return; }
+  const errs = Object.entries(STATUS || {}).filter(([, s]) => s.error);
+  const lc = Object.values(STATUS || {}).map(s => s.last_check).filter(Boolean).sort().pop();
+  if (errs.length) { el.classList.add("err"); t.textContent = "Lỗi lấy dữ liệu (xem chi tiết)"; el.title = errs.map(([g, s]) => G[g].name + ": " + s.error).join("\n"); }
+  else { el.classList.add("ok"); t.textContent = "Tự cập nhật · kiểm tra lúc " + (lc ? lc.slice(11, 19) : "—"); }
+}
+let toastT;
+function toast(msg, warn) { const t = $("#toast"); t.textContent = msg; t.style.background = warn ? "#d3141c" : "#22a35a"; t.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), 6500); }
+
+async function pull(manual) {
+  try {
+    const r = await fetch(manual ? "/api/sync" : "/api/data", {method: manual ? "POST" : "GET", cache: "no-store"});
+    if (!r.ok) throw 0;
+    const j = await r.json();
+    const before = DATA ? ["655", "645"].map(g => rowsOf(g).length) : null;
+    DATA = j; STATUS = j.status; serverMode = true;
+    const after = ["655", "645"].map(g => rowsOf(g).length);
+    if (before && (before[0] !== after[0] || before[1] !== after[1])) {
+      const gs = ["655", "645"].filter((g, i) => after[i] !== before[i]);
+      renderTop(); setTab(S.tab);
+      toast("🎉 Có kết quả mới: " + gs.map(g => `${G[g].name} ${fmtDate(rowsOf(g)[0].d)} → ${rowsOf(g)[0].n.map(pad).join(" ")}${rowsOf(g)[0].b ? " + " + pad(rowsOf(g)[0].b) : ""}`).join(" | ") + " (đã ghi vào file .ods)");
+    } else if (manual) toast("Đã kiểm tra – chưa có kỳ mới");
+    setPill(); return true;
+  } catch (e) { return false; }
+}
+
+async function pullStatic() {
+  try {
+    const r = await fetch("data.js?t=" + Date.now(), {cache: "no-store"});
+    if (!r.ok) return;
+    const txt = (await r.text()).trim().replace(/^window\.LOTTO_DATA=/, "").replace(/;$/, "");
+    const j = JSON.parse(txt);
+    const before = ["655", "645"].map(g => rowsOf(g).length), after = ["655", "645"].map(g => j.games[g].rows.length);
+    if (before[0] !== after[0] || before[1] !== after[1]) {
+      const gs = ["655", "645"].filter((g, i) => after[i] !== before[i]);
+      DATA = j; renderTop(); setTab(S.tab);
+      toast("🎉 Có kết quả mới: " + gs.map(g => `${G[g].name} ${fmtDate(rowsOf(g)[0].d)} → ${rowsOf(g)[0].n.map(pad).join(" ")}${rowsOf(g)[0].b ? " + " + pad(rowsOf(g)[0].b) : ""}`).join(" | "));
+    }
+  } catch (e) {}
+}
+async function init() {
+  if (!(await pull(false))) {
+    if (window.LOTTO_DATA) DATA = window.LOTTO_DATA;
+    else { document.body.innerHTML = "<p style='padding:30px'>Không tải được dữ liệu. Hãy chạy <code>python3 server.py</code> rồi mở http://localhost:8000</p>"; return; }
+  }
+  $("#gp").onclick = e => { const b = e.target.closest("button"); if (b) setGame(b.dataset.g); };
+  $("#tabs").onclick = e => { const b = e.target.closest(".tab"); if (b) setTab(b.dataset.t); };
+  $("#range").onchange = e => { S.range = e.target.value; renderStats(); };
+  $("#sort").onchange = e => { S.sort = e.target.value; renderStats(); };
+  $("#modes").onclick = e => { const b = e.target.closest(".mode"); if (b) { S.mode = b.dataset.m; renderStats(); } };
+  $("#predN").onchange = e => { S.predN = e.target.value; renderPred(); };
+  $("#predM").onchange = e => { S.predM = e.target.value; renderPred(); };
+  $("#predBtn").onclick = () => { S.seed++; renderPred(); };
+  document.addEventListener("click", async e => {
+    const c = e.target.closest(".copy[data-nums]");
+    if (c) { try { await navigator.clipboard.writeText(c.dataset.nums); toast("Đã copy: " + c.dataset.nums); } catch (_) { toast("Không copy được: " + c.dataset.nums, true); } }
+  });
+  // dò số
+  $("#nums").onclick = e => {
+    const b = e.target.closest("button"); if (!b) return; const n = +b.dataset.n, i = S.pick.indexOf(n);
+    if (i >= 0) S.pick.splice(i, 1); else if (S.pick.length < 6) S.pick.push(n); else toast("Đã đủ 6 số rồi – bấm số đã chọn để bỏ", true);
+    renderPick();
+  };
+  $("#rndBtn").onclick = () => { const mx = G[S.game].max, s = new Set(); while (s.size < 6) s.add(1 + Math.floor(Math.random() * mx)); S.pick = [...s]; renderPick(); };
+  $("#clrBtn").onclick = () => { S.pick = []; renderPick(); };
+  $("#applyBtn").onclick = () => { const p = parsePaste($("#paste").value); if (!p.length) return toast("Không đọc được số nào hợp lệ", true); S.pick = p; renderPick(); };
+  $("#addBtn").onclick = () => { const t = S.pick.slice().sort((a, b) => a - b); if (!S.tickets.some(x => x.join() === t.join())) S.tickets.push(t); S.pick = []; renderPick(); };
+  $("#goBtn").onclick = runCheck;
+  $("#favBtn").onclick = () => { if (S.pick.length !== 6) return toast("Chọn đủ 6 số để lưu", true); const k = "fav" + S.game, f = store(k) || [], t = S.pick.slice().sort((a, b) => a - b);
+    if (!f.some(x => x.join() === t.join())) f.push(t); store(k, f); toast("Đã lưu vào yêu thích"); renderPick(); };
+  $("#t-check").addEventListener("click", e => {
+    const d = e.target.closest("[data-deltk]"), f = e.target.closest("[data-fav]"), x = e.target.closest("[data-delfav]");
+    if (d) { S.tickets.splice(+d.dataset.deltk, 1); renderPick(); }
+    if (f) { S.pick = (store("fav" + S.game) || [])[+f.dataset.fav].slice(); renderPick(); }
+    if (x) { const k = "fav" + S.game, a = store(k) || []; a.splice(+x.dataset.delfav, 1); store(k, a); renderPick(); }
+  });
+  $("#fab").onclick = () => scrollTo({top: 0, behavior: "smooth"});
+  setGame("655"); setTab("stats"); setPill();
+  setInterval(renderLive, 1000);
+  if (serverMode) { $("#syncBtn").hidden = false; setInterval(() => pull(false), 20000); }
+  else if (location.protocol.startsWith("http")) setInterval(pullStatic, 60000);
+  $("#syncBtn").onclick = async e => { e.target.disabled = true; await pull(true); e.target.disabled = false; };
+}
+init();
+</script>
+</body>
+</html>
