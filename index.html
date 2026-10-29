@@ -219,7 +219,7 @@ body{background:#1b1411}
   <!-- DỰ ĐOÁN -->
   <div class="card" id="t-pred" hidden>
     <h2 id="prTitle"></h2>
-    <p class="hint">Bộ số được <b>cố định theo từng kỳ</b>: thoát ra vào lại vẫn y nguyên, chỉ đổi khi có kết quả mới hoặc khi m đổi số kỳ bên dưới (số kỳ được nhớ lại trên máy). Giải trí thôi nha — xổ số là ngẫu nhiên, kỳ trước không ảnh hưởng kỳ sau! 😄</p>
+    <p class="hint">Bộ số được <b>cố định theo từng kỳ</b>: thoát ra vào lại vẫn y nguyên, chỉ đổi khi có kết quả mới hoặc khi bạn đổi số kỳ bên dưới (số kỳ được nhớ lại trên máy). Giải trí thôi nha — xổ số là ngẫu nhiên, kỳ trước không ảnh hưởng kỳ sau! 😄</p>
     <div class="row"><label for="predN">Số kỳ gần nhất:</label><input type="number" id="predN" min="5" max="200" value="20"><span class="hint" id="predOf" style="margin:0"></span></div>
     <div class="row"><label for="predM">Phương thức:</label><select id="predM"></select></div>
     <div class="hint" id="predDesc" style="margin-top:12px"></div>
@@ -640,7 +640,7 @@ function renderCage() {
 }
 
 /* ───────── Lồng cầu hard: bốc ngẫu nhiên CÓ TRỌNG SỐ theo thống kê ───────── */
-const LH = {mode: "full", distinct: false, sets: null, shown: 0, busy: false, snd: !!store("lcSnd"), tm: [], iv: 0};
+const LH = {mode: "full", distinct: false, sets: null, shown: 0, busy: false, tm: [], iv: 0};
 const LCH = [["🔥", "Số nóng"], ["⏳", "Lâu chưa ra"], ["📚", "Toàn thời gian"], ["⚖️", "Điểm tổng hợp"], ["🔀", "Nóng + lâu chưa ra"]];
 function lhWeights(g) {
   const rows = rowsOf(g), max = G[g].max, N = Math.max(5, Math.min(rows.length, getN()));
@@ -670,12 +670,12 @@ function lhStart() {
   if (LH.busy) return;
   const g = S.game, per = G[g].bonus ? 7 : 6;
   if (LH.mode === "step") {
-    if (!LH.sets || LH.shown >= per) { LH.sets = {g, list: lcGen(g)}; LH.shown = 0; }
+    if (!LH.sets || LH.shown >= per) { LH.sets = {g, list: lhGen(g)}; LH.shown = 0; }
     LH.shown++; beep(500 + LH.shown * 80);
     if (LH.shown >= per) lhSaveHist();
     renderCageH(); return;
   }
-  LH.sets = {g, list: lcGen(g)}; LH.shown = 0; LH.busy = true; renderCageH();
+  LH.sets = {g, list: lhGen(g)}; LH.shown = 0; LH.busy = true; renderCageH();
   LH.iv = setInterval(() => document.querySelectorAll(".chb.spin").forEach(el => { el.textContent = pad(1 + Math.floor(rndU() * G[g].max)); }), 70);
   for (let k = 0; k < per; k++) LH.tm.push(setTimeout(() => {
     LH.shown = k + 1; beep(500 + k * 80);
@@ -686,7 +686,7 @@ function lhStart() {
 function renderCageH() {
   const g = S.game, per = G[g].bonus ? 7 : 6, cur = LH.sets && LH.sets.g === g ? LH.sets.list : null, done = cur && LH.shown >= per;
   $("#chTitle").textContent = `🧠 Lồng cầu hard — ${G[g].name}`;
-  $("#chSnd").textContent = LH.snd ? "🔊" : "🔇";
+  $("#chSnd").textContent = L.snd ? "🔊" : "🔇";
   $("#chModes").innerHTML = [["full", "⚡ Quay full"], ["step", "🎯 Từng quả"]].map(([m, t]) => `<button class="mode" data-m="${m}" aria-pressed="${LH.mode === m}">${t}</button>`).join("");
   $("#chDistinct").checked = LH.distinct;
   $("#chLines").innerHTML = LCH.map(([e, t], i) => {
@@ -836,7 +836,7 @@ async function init() {
     const m = e.target.closest("[data-m]"), c = e.target.closest("[data-chchk]"), f = e.target.closest("[data-chfav]"), cur = LH.sets && LH.sets.list;
     if (m && !LH.busy) { LH.mode = m.dataset.m; LH.sets = null; LH.shown = 0; renderCageH(); }
     if (e.target.closest("#chGo")) lhStart();
-    if (e.target.closest("#chSnd")) { LH.snd = !LH.snd; store("lcSnd", LH.snd); renderCageH(); }
+    if (e.target.closest("#chSnd")) { L.snd = !L.snd; store("lcSnd", L.snd); renderCageH(); }
     if (e.target.closest("#chClear")) { store("lh" + S.game, []); renderCageH(); }
     if (c && cur) { S.pick = cur[+c.dataset.chchk].n.slice(); setTab("check"); }
     if (f && cur) { const k = "fav" + S.game, a = store(k) || [], t = cur[+f.dataset.chfav].n.slice().sort((x, y) => x - y); if (!a.some(x => x.join() === t.join())) a.push(t); store(k, a); toast("Đã lưu vào yêu thích"); }
