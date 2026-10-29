@@ -67,7 +67,7 @@ a{color:var(--red);font-weight:800}
 .ball.miss{opacity:.35}
 
 /* tabs */
-.tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:4px 0 14px}
+.tabs{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:4px 0 14px}
 .tab{border:2px solid var(--line);background:#fff;border-radius:22px;padding:10px 2px;font:800 15px/1.2 "Nunito",sans-serif;color:var(--ink);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;min-height:74px;justify-content:center}
 .tab .e{font-size:22px}
 .tab[aria-selected=true]{background:linear-gradient(180deg,#ffd45c,#ffb82e);border-color:#e6a100;box-shadow:0 5px 12px rgba(230,161,0,.35)}
@@ -131,7 +131,7 @@ details{margin-top:14px}summary{cursor:pointer;font-weight:800;color:var(--red)}
 .bars{display:flex;gap:6px;height:84px;margin-top:8px}.bars>div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;font-size:12px;font-weight:700;color:var(--mute)}
 .bars i{display:block;width:100%;background:linear-gradient(180deg,#ffc233,#ff5a36);border-radius:6px 6px 0 0;min-height:2px}
 .xt .pc{font-size:14px}
-.cgl{border:2px solid var(--line);border-radius:20px;padding:12px;margin-bottom:10px}.cgl .lt{font-weight:800;font-size:14.5px}.cgb.spin{opacity:.7}
+.cgl{border:2px solid var(--line);border-radius:20px;padding:12px;margin-bottom:10px}.cgl .lt{font-weight:800;font-size:14.5px}.cgb.spin,.chb.spin{opacity:.7}
 [hidden]{display:none!important}
 @media(prefers-color-scheme:dark){
 :root{color-scheme:dark;--ink:#f6e9dc;--mute:#bda996;--line:#4d3b30;--cream:#3b2c24;--card:#2b211c;--red:#ff6b5e}
@@ -141,7 +141,7 @@ body{background:#1b1411}
 .hl.most{background:#4a2326;border-color:#7a3a3a}.hl.least{background:#1f2b45;border-color:#3a5288}.hl.gap{background:#46381b;border-color:#8a6a1e}
 .slot{background:#3b2c24;color:#8a7566}td{border-bottom-color:#3b2c24}.meter{background:#3b2c24}.tier{border-bottom-color:#4d3b30}
 }
-@media(max-width:460px){.ball{width:38px;height:38px;font-size:15px}.nums{gap:5px}.tab{font-size:12.5px;padding:10px 0}.tab .e{font-size:20px}}
+@media(max-width:460px){.ball{width:38px;height:38px;font-size:15px}.nums{gap:5px}.tabs{grid-template-columns:repeat(3,1fr)}.tab{font-size:14px;padding:10px 0}.tab .e{font-size:20px}}
 </style>
 </head>
 <body>
@@ -175,6 +175,7 @@ body{background:#1b1411}
     <button class="tab" data-t="pred"><span class="e">🎯</span>Dự đoán</button>
     <button class="tab" data-t="hist"><span class="e">🗂️</span>Kết quả</button>
     <button class="tab" data-t="cage"><span class="e">🎰</span>Lồng cầu</button>
+    <button class="tab" data-t="cageh"><span class="e">🧠</span>Lồng cầu hard</button>
   </nav>
 
   <!-- DÒ SỐ -->
@@ -218,7 +219,8 @@ body{background:#1b1411}
   <!-- DỰ ĐOÁN -->
   <div class="card" id="t-pred" hidden>
     <h2 id="prTitle"></h2>
-    <p class="hint">Bộ số được <b>cố định theo từng kỳ</b>: thoát ra vào lại vẫn y nguyên, chỉ đổi khi có kết quả mới. Giải trí thôi nha — xổ số là ngẫu nhiên, kỳ trước không ảnh hưởng kỳ sau! 😄</p>
+    <p class="hint">Bộ số được <b>cố định theo từng kỳ</b>: thoát ra vào lại vẫn y nguyên, chỉ đổi khi có kết quả mới hoặc khi m đổi số kỳ bên dưới (số kỳ được nhớ lại trên máy). Giải trí thôi nha — xổ số là ngẫu nhiên, kỳ trước không ảnh hưởng kỳ sau! 😄</p>
+    <div class="row"><label for="predN">Số kỳ gần nhất:</label><input type="number" id="predN" min="5" max="200" value="20"><span class="hint" id="predOf" style="margin:0"></span></div>
     <div class="row"><label for="predM">Phương thức:</label><select id="predM"></select></div>
     <div class="hint" id="predDesc" style="margin-top:12px"></div>
     <div class="res" id="predRes"></div>
@@ -246,6 +248,16 @@ body{background:#1b1411}
     <button class="btn red" id="cgGo" style="width:100%"></button>
     <div class="row" style="justify-content:space-between;margin:18px 0 0"><b id="cgHistTitle"></b><button class="chip" id="cgClear">Xóa</button></div>
     <div class="hint" id="cgSum"></div><div id="cgHist"></div>
+  </div>
+  <div class="card" id="t-cageh" hidden>
+    <div class="flex" style="justify-content:space-between"><h2 id="chTitle" style="margin:0"></h2><button class="btn" id="chSnd" aria-label="Âm thanh">🔇</button></div>
+    <p class="hint">5 dãy bốc ngẫu nhiên <b>có trọng số theo thống kê</b> (mỗi dãy một cách: số nóng, lâu chưa ra, toàn thời gian, điểm tổng hợp, pha trộn; dùng số kỳ gần nhất đặt ở tab Dự đoán). Giải trí thôi — bộ số nào cũng có cơ hội trúng như nhau! 😄</p>
+    <div class="modes" id="chModes"></div>
+    <label class="hint" style="display:flex;gap:8px;align-items:center;margin-top:0"><input type="checkbox" id="chDistinct"> 5 dãy không trùng số nào</label>
+    <div id="chLines"></div><div class="hint" id="chNote"></div>
+    <button class="btn red" id="chGo" style="width:100%"></button>
+    <div class="row" style="justify-content:space-between;margin:18px 0 0"><b id="chHistTitle"></b><button class="chip" id="chClear">Xóa</button></div>
+    <div class="hint" id="chSum"></div><div id="chHist"></div>
   </div>
 
   <div class="foot">Nguồn dữ liệu: ketquadientoan.com (chính) và minhngoc.net.vn (dự phòng, đối chiếu chéo). Trang cá nhân phi thương mại, <b>không phải trang chính thức của Vietlott</b> — kết quả chính thức xem tại vietlott.vn. Chỉ dành cho người từ 18 tuổi; xổ số là ngẫu nhiên, hãy chơi có trách nhiệm.</div>
@@ -424,10 +436,11 @@ const METHODS = [
 ];
 const setInfo = s => `Tổng ${s.reduce((a, b) => a + b, 0)} · ${s.filter(x => x % 2 === 0).length} chẵn / ${s.filter(x => x % 2).length} lẻ`;
 const PRED_N = 20;
+const getN = () => Math.max(5, Math.min(200, Math.round(+store("predN")) || PRED_N));
 const hashSeed = str => { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
 // 7 bộ số cho kỳ kế tiếp: chỉ phụ thuộc dữ liệu đã có + ngày kỳ cuối => mở lại app vẫn y nguyên đến khi có kỳ mới
-function predSets(g, rows) {
-  const max = G[g].max, d = detMethods(rows, max, Math.min(PRED_N, rows.length)), rnd = mulberry32(hashSeed(g + rows[0].d));
+function predSets(g, rows, N = getN()) {
+  const max = G[g].max, d = detMethods(rows, max, Math.min(N, rows.length)), rnd = mulberry32(hashSeed(g + rows[0].d));
   return {pos: d.pos, hot: d.hot, cold: d.cold, all: d.all, bal: d.bal,
     wr: weightedPick(d.fN.map(x => x + 1), max, rnd), rnd: weightedPick(new Array(max + 1).fill(1), max, rnd)};
 }
@@ -456,7 +469,8 @@ function renderReview(g) {
   <table><thead><tr><th>Phương pháp</th><th>Tổng</th><th>TB/kỳ</th><th>Cao nhất</th></tr></thead><tbody>${sumH}</tbody></table>`;
 }
 function renderPred() {
-  const g = S.game, rows = rowsOf(g), max = G[g].max, N = Math.min(PRED_N, rows.length);
+  const g = S.game, rows = rowsOf(g), max = G[g].max, N = Math.min(getN(), rows.length);
+  $("#predN").value = getN(); $("#predOf").textContent = `/ ${rows.length} kỳ`;
   $("#prTitle").textContent = `🎯 Dự đoán số — ${G[g].name}`;
   $("#predM").innerHTML = METHODS.map(([k, n]) => `<option value="${k}" ${S.predM === k ? "selected" : ""}>${n}</option>`).join("");
   const sets = predSets(g, rows);
@@ -625,15 +639,89 @@ function renderCage() {
   }).join("") : '<div class="hint">Chưa có lịch sử quay</div>';
 }
 
+/* ───────── Lồng cầu hard: bốc ngẫu nhiên CÓ TRỌNG SỐ theo thống kê ───────── */
+const LH = {mode: "full", distinct: false, sets: null, shown: 0, busy: false, snd: !!store("lcSnd"), tm: [], iv: 0};
+const LCH = [["🔥", "Số nóng"], ["⏳", "Lâu chưa ra"], ["📚", "Toàn thời gian"], ["⚖️", "Điểm tổng hợp"], ["🔀", "Nóng + lâu chưa ra"]];
+function lhWeights(g) {
+  const rows = rowsOf(g), max = G[g].max, N = Math.max(5, Math.min(rows.length, getN()));
+  const fN = new Array(max + 1).fill(0), fA = fN.slice(), gap = new Array(max + 1).fill(-1);
+  rows.forEach((r, i) => { for (const n of r.n) { fA[n]++; if (i < N) fN[n]++; if (gap[n] < 0) gap[n] = i; } });
+  for (let n = 1; n <= max; n++) if (gap[n] < 0) gap[n] = rows.length;
+  const a = zs(fN, max), b = zs(fA, max), c = zs(gap, max);
+  const sN = fN.reduce((x, y) => x + y, 0) + max, sG = gap.slice(1).reduce((x, y) => x + y, 0) + max;
+  const w = f => { const o = new Array(max + 1).fill(0); for (let n = 1; n <= max; n++) o[n] = f(n); return o; };
+  return [w(n => fN[n] + 1), w(n => gap[n] + 1), w(n => fA[n] + 1), w(n => Math.exp(.4 * a[n] + .3 * b[n] + .3 * c[n])), w(n => (fN[n] + 1) / sN + (gap[n] + 1) / sG)];
+}
+function lhGen(g) {
+  const max = G[g].max, W = lhWeights(g), used = new Set(), list = [];
+  let bw = null;
+  if (G[g].bonus) { bw = new Array(max + 1).fill(1); rowsOf(g).forEach(r => { if (r.b) bw[r.b]++; }); }
+  for (let i = 0; i < 5; i++) {
+    const w = W[i].slice(); if (LH.distinct) used.forEach(n => { w[n] = 0; });
+    const n = weightedPick(w, max, rndU).sort((x, y) => x - y); n.forEach(x => used.add(x));
+    let b = null; if (bw) { const w2 = bw.slice(); n.forEach(x => { w2[x] = 0; }); b = weightedPick(w2, max, rndU, 1)[0]; }
+    list.push({n, b});
+  }
+  return list;
+}
+function lhStop() { LH.tm.forEach(clearTimeout); LH.tm = []; clearInterval(LH.iv); LH.busy = false; }
+function lhSaveHist() { const k = "lh" + S.game, h = store(k) || []; h.unshift({t: Date.now(), s: LH.sets.list}); store(k, h.slice(0, 10)); }
+function lhStart() {
+  if (LH.busy) return;
+  const g = S.game, per = G[g].bonus ? 7 : 6;
+  if (LH.mode === "step") {
+    if (!LH.sets || LH.shown >= per) { LH.sets = {g, list: lcGen(g)}; LH.shown = 0; }
+    LH.shown++; beep(500 + LH.shown * 80);
+    if (LH.shown >= per) lhSaveHist();
+    renderCageH(); return;
+  }
+  LH.sets = {g, list: lcGen(g)}; LH.shown = 0; LH.busy = true; renderCageH();
+  LH.iv = setInterval(() => document.querySelectorAll(".chb.spin").forEach(el => { el.textContent = pad(1 + Math.floor(rndU() * G[g].max)); }), 70);
+  for (let k = 0; k < per; k++) LH.tm.push(setTimeout(() => {
+    LH.shown = k + 1; beep(500 + k * 80);
+    if (k === per - 1) { clearInterval(LH.iv); LH.busy = false; lhSaveHist(); }
+    renderCageH();
+  }, 500 + k * 280));
+}
+function renderCageH() {
+  const g = S.game, per = G[g].bonus ? 7 : 6, cur = LH.sets && LH.sets.g === g ? LH.sets.list : null, done = cur && LH.shown >= per;
+  $("#chTitle").textContent = `🧠 Lồng cầu hard — ${G[g].name}`;
+  $("#chSnd").textContent = LH.snd ? "🔊" : "🔇";
+  $("#chModes").innerHTML = [["full", "⚡ Quay full"], ["step", "🎯 Từng quả"]].map(([m, t]) => `<button class="mode" data-m="${m}" aria-pressed="${LH.mode === m}">${t}</button>`).join("");
+  $("#chDistinct").checked = LH.distinct;
+  $("#chLines").innerHTML = LCH.map(([e, t], i) => {
+    const s = cur && cur[i], seq = s ? s.n.concat(s.b ? [s.b] : []) : [];
+    const balls = Array.from({length: per}, (_, k) => (k === 6 ? '<span class="plus">+</span>' : "") +
+      (s && k < LH.shown ? ball(seq[k], (k === 6 ? "gold " : "") + "sm") : `<span class="ball sm plain chb${LH.busy ? " spin" : ""}">?</span>`)).join("");
+    const acts = done ? `<div class="flex"><button class="copy" data-nums="${s.n.map(pad).join(" ")}">📋 Copy</button><button class="copy" data-chchk="${i}">🔍 Dò</button><button class="copy" data-chfav="${i}">💾 Lưu</button></div>` : "";
+    return `<div class="cgl"><div class="lt">${e} Dãy ${i + 1} · ${t}</div><div class="balls" style="margin:6px 0 8px">${balls}</div>${acts}</div>`;
+  }).join("");
+  { const nt = nextDraw(g, nowVN()); $("#chNote").textContent = done ? `🔎 Bộ số này sẽ tự đối chiếu với kết quả kỳ ${WD[nt.getDay()]}, ${pad(nt.getDate())}/${pad(nt.getMonth() + 1)} 18:00 (xem ở Lịch sử bên dưới).` : ""; }
+  $("#chGo").textContent = LH.mode === "full" ? "🎰 QUAY 5 DÃY" : (!cur || done ? "🎯 QUAY QUẢ ĐẦU TIÊN" : `🎯 QUAY QUẢ ${LH.shown + 1}/${per}`);
+  $("#chGo").disabled = LH.busy;
+  const h = store("lh" + g) || [];
+  $("#chHistTitle").textContent = `Lịch sử & đối chiếu (${h.length}/10)`;
+  const rvs = h.map(x => lcReview(g, x)), done2 = rvs.filter(Boolean), base = 36 / G[g].max;
+  const nLines = done2.reduce((a, v) => a + v.hits.length, 0), tot = done2.reduce((a, v) => a + v.hits.reduce((p, q) => p + q, 0), 0);
+  $("#chSum").textContent = done2.length ? `Đã đối chiếu ${done2.length} lần quay (${nLines} dãy): trung bình trúng ${(tot / nLines).toFixed(2)}/6 số mỗi dãy — ngẫu nhiên kỳ vọng ≈ ${base.toFixed(2)}.` : "";
+  $("#chHist").innerHTML = h.length ? h.map((x, i) => {
+    const rv = rvs[i], when = new Date(x.t).toLocaleString("vi");
+    const head = rv ? `${when} · kỳ ${fmtDate(rv.r.d)} · cao nhất ${rv.best}/6` : `${when} · ⏳ chờ kết quả kỳ tiếp theo`;
+    const res = rv ? `<div class="hint" style="margin:6px 0 4px">Kết quả ${fmtDate(rv.r.d)}:</div><div class="flex" style="gap:5px">${ballsHtml(rv.r, "sm")}</div><div class="hint" style="margin:4px 0 8px">${setInfo(rv.r.n)}</div>` : "";
+    const lines = x.s.map((s, k) => `<div class="flex" style="gap:5px;margin-top:6px">${s.n.map(v => ball(v, "sm" + (rv ? (rv.act.has(v) ? " hit" : " miss") : ""))).join("")}${s.b ? '<span class="plus">+</span>' + ball(s.b, "gold sm" + (rv && rv.r.b ? (s.b === rv.r.b ? " hit" : " miss") : "")) : ""}</div><div class="pc" style="font-size:13.5px">Dãy ${k + 1}${rv ? " · trúng " + rv.hits[k] + "/6" : ""} · ${setInfo(s.n)}</div>`).join("");
+    return `<details${i === 0 ? " open" : ""}><summary>${head}</summary>${res}${lines}</details>`;
+  }).join("") : '<div class="hint">Chưa có lịch sử quay</div>';
+}
+
 /* ───────── Điều khiển chung ───────── */
 function setTab(t) {
   S.tab = t;
   document.querySelectorAll(".tab").forEach(b => b.setAttribute("aria-selected", b.dataset.t === t));
-  for (const k of ["check", "stats", "pred", "hist", "cage"]) $("#t-" + k).hidden = k !== t;
-  if (t === "check") renderPick(); if (t === "stats") renderStats(); if (t === "pred") renderPred(); if (t === "hist") renderHist(); if (t === "cage") renderCage();
+  for (const k of ["check", "stats", "pred", "hist", "cage", "cageh"]) $("#t-" + k).hidden = k !== t;
+  if (t === "check") renderPick(); if (t === "stats") renderStats(); if (t === "pred") renderPred(); if (t === "hist") renderHist(); if (t === "cage") renderCage(); if (t === "cageh") renderCageH();
 }
 function setGame(g) {
-  lcStop(); L.sets = null; L.shown = 0; S.game = g; S.mode = "main"; S.pick = []; S.tickets = store("tk" + g) || []; $("#checkRes").innerHTML = "";
+  lcStop(); L.sets = null; L.shown = 0; lhStop(); LH.sets = null; LH.shown = 0; S.game = g; S.mode = "main"; S.pick = []; S.tickets = store("tk" + g) || []; $("#checkRes").innerHTML = "";
   document.querySelectorAll("#gp button").forEach(b => b.setAttribute("aria-pressed", b.dataset.g === g));
   renderTop(); setTab(S.tab);
 }
@@ -679,7 +767,7 @@ function notifyTickets(gs) {
     if (rv) { const best = Math.max(...METHODS.map(([k]) => rv.hits[k].length)), nm = METHODS.filter(([k]) => rv.hits[k].length === best).map(([k]) => pname(k));
       parts.push(`dự đoán trúng cao nhất ${best}/6 (${nm[0]}${nm.length > 1 ? " +" + (nm.length - 1) : ""})`); }
     if (all.length) parts.push(`vé đã lưu trúng tối đa ${Math.max(...all.map(t => r.n.filter(x => t.includes(x)).length))}/6`);
-    let lb = -1; for (const x of (store("lc" + g) || [])) { const rv = lcReview(g, x); if (rv && rv.r.d === r.d) lb = Math.max(lb, rv.best); }
+    let lb = -1; for (const x of (store("lc" + g) || []).concat(store("lh" + g) || [])) { const rv = lcReview(g, x); if (rv && rv.r.d === r.d) lb = Math.max(lb, rv.best); }
     if (lb >= 0) parts.push(`lồng cầu trúng cao nhất ${lb}/6`);
     if (parts.length) msgs.push(`${G[g].name}: ${parts.join(", ")}`);
   }
@@ -709,6 +797,7 @@ async function init() {
   $("#range").onchange = e => { S.range = e.target.value; renderStats(); };
   $("#sort").onchange = e => { S.sort = e.target.value; renderStats(); };
   $("#modes").onclick = e => { const b = e.target.closest(".mode"); if (b) { S.mode = b.dataset.m; renderStats(); } };
+  $("#predN").onchange = e => { store("predN", Math.max(5, Math.min(200, Math.round(+e.target.value) || PRED_N))); renderPred(); };
   $("#predM").onchange = e => { S.predM = e.target.value; renderPred(); };
   document.addEventListener("click", async e => {
     const c = e.target.closest(".copy[data-nums]");
@@ -743,6 +832,16 @@ async function init() {
     if (f && cur) { const k = "fav" + S.game, a = store(k) || [], t = cur[+f.dataset.cgfav].n.slice().sort((x, y) => x - y); if (!a.some(x => x.join() === t.join())) a.push(t); store(k, a); toast("Đã lưu vào yêu thích"); }
   });
   $("#cgDistinct").onchange = e => { L.distinct = e.target.checked; };
+  $("#t-cageh").addEventListener("click", e => {
+    const m = e.target.closest("[data-m]"), c = e.target.closest("[data-chchk]"), f = e.target.closest("[data-chfav]"), cur = LH.sets && LH.sets.list;
+    if (m && !LH.busy) { LH.mode = m.dataset.m; LH.sets = null; LH.shown = 0; renderCageH(); }
+    if (e.target.closest("#chGo")) lhStart();
+    if (e.target.closest("#chSnd")) { LH.snd = !LH.snd; store("lcSnd", LH.snd); renderCageH(); }
+    if (e.target.closest("#chClear")) { store("lh" + S.game, []); renderCageH(); }
+    if (c && cur) { S.pick = cur[+c.dataset.chchk].n.slice(); setTab("check"); }
+    if (f && cur) { const k = "fav" + S.game, a = store(k) || [], t = cur[+f.dataset.chfav].n.slice().sort((x, y) => x - y); if (!a.some(x => x.join() === t.join())) a.push(t); store(k, a); toast("Đã lưu vào yêu thích"); }
+  });
+  $("#chDistinct").onchange = e => { LH.distinct = e.target.checked; };
   $("#fab").onclick = () => scrollTo({top: 0, behavior: "smooth"});
   setGame("655"); setTab("stats"); setPill();
   setInterval(renderLive, 1000);
