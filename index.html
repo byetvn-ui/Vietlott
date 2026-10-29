@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thống kê Vietlott 6/45 &amp; 6/55</title>
+<meta name="description" content="Kết quả, thống kê và dò số Vietlott Mega 6/45 & Power 6/55, tự cập nhật sau mỗi kỳ quay.">
+<meta name="theme-color" content="#d3141c">
+<meta property="og:title" content="Thống kê Vietlott 6/45 & 6/55"><meta property="og:type" content="website">
+<meta property="og:description" content="Kết quả mới nhất, thống kê tần suất, dò số 6/45 & 6/55.">
+<link rel="manifest" href="manifest.json"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme:light;
+  --ink:#4a2e1f; --mute:#8a7566; --line:#f3e2c2; --cream:#fff6e0; --card:#fff;
+  --red:#d3141c; --red2:#ff5a36; --gold:#ffc233; --gold2:#ffb000; --blue:#2f6fd6;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;color:var(--ink);font:500 16px/1.5 "Nunito",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  background:linear-gradient(180deg,#ffe6d2 0,#fff3e8 320px,#fffaf5 100%) fixed;min-height:100vh;-webkit-font-smoothing:antialiased}
+.app{max-width:720px;margin:0 auto;padding:18px 14px 90px}
+h1{margin:0;font-size:24px;font-weight:900;color:var(--red);letter-spacing:-.01em}
+h2{margin:0 0 12px;font-size:21px;font-weight:900;color:var(--red)}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.pill{display:inline-flex;align-items:center;gap:7px;border:2px solid var(--line);background:#fff;border-radius:99px;padding:3px 11px;font-size:12.5px;font-weight:700;color:var(--mute)}
+.pill i{width:8px;height:8px;border-radius:50%;background:var(--mute)}
+.pill.ok i{background:#22a35a}.pill.err i{background:var(--red)}
+.card{background:var(--card);border:2px solid var(--line);border-radius:26px;padding:18px;margin-bottom:16px;box-shadow:0 6px 18px rgba(214,120,60,.08)}
+.gp{display:flex;gap:10px;margin-bottom:12px}
+.gp button{flex:1;border:2px solid var(--line);background:#fff;border-radius:99px;padding:10px 12px;font:800 16px "Nunito",sans-serif;color:var(--ink);cursor:pointer}
+.gp button[aria-pressed=true]{background:linear-gradient(135deg,#e3262b,#ff5533);color:#fff;border-color:#e3262b;box-shadow:0 5px 14px rgba(227,38,43,.3)}
+.dataline{font-size:14.5px;color:var(--mute);margin:2px 2px 10px}
+a{color:var(--red);font-weight:800}
+.rule{font-size:14.5px;color:var(--mute);border-top:2px dashed var(--line);padding-top:10px;margin-top:8px}
+
+/* live */
+.live{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:620px){.live{grid-template-columns:1fr}}
+.lc{border:2px solid var(--line);border-radius:20px;padding:13px;background:#fffbf1}
+.lc .lh{display:flex;justify-content:space-between;align-items:baseline;gap:6px;flex-wrap:wrap}
+.lc .nm{font-weight:900;font-size:17px;color:var(--red)}
+.lc .dt{font-size:13px;color:var(--mute);font-weight:700}
+.balls{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0 6px;align-items:center}
+.plus{font-weight:900;color:var(--mute)}
+.nx{font-size:13.5px;color:var(--mute);margin-top:6px}.nx b{color:var(--ink);font-variant-numeric:tabular-nums}
+.badge{display:inline-block;font-size:12px;font-weight:800;padding:2px 10px;border-radius:99px;background:var(--cream);color:var(--mute)}
+.badge.new{background:#22a35a;color:#fff}.badge.wait{background:var(--gold2);color:#4a2e1f;animation:pulse 1.3s infinite}
+@keyframes pulse{50%{opacity:.55}}
+.btn{border:2px solid var(--line);background:#fff;color:var(--ink);border-radius:99px;padding:8px 16px;font:800 14px "Nunito",sans-serif;cursor:pointer}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.red{background:linear-gradient(135deg,#e3262b,#ff5533);color:#fff;border-color:transparent;font-size:17px;padding:11px 24px;box-shadow:0 6px 14px rgba(227,38,43,.28)}
+.btn.gold{background:linear-gradient(135deg,#ffcf55,#ffb82e);border-color:transparent}
+.btn.ghost{background:#fff}
+
+/* balls */
+.ball{width:42px;height:42px;border-radius:50%;display:inline-grid;place-items:center;font-weight:900;font-size:16px;color:#fff;font-variant-numeric:tabular-nums;
+  background:radial-gradient(circle at 32% 28%,#ff8a7a,#e0222a 62%,#b3121a);box-shadow:0 3px 6px rgba(190,20,30,.3);flex:none}
+.ball.blue{background:radial-gradient(circle at 32% 28%,#8bbcff,#3a78de 62%,#2457b3);box-shadow:0 3px 6px rgba(40,90,190,.3)}
+.ball.dash{background:#fff7de;border:2.5px dashed var(--gold2);color:#c98a00;box-shadow:none}
+.ball.plain{background:#fff;border:2px solid var(--line);color:var(--ink);box-shadow:none}
+.ball.gold{background:radial-gradient(circle at 32% 28%,#ffe58a,#ffbf2a 65%,#e29a00);color:#3d2a00;box-shadow:0 3px 6px rgba(220,150,0,.3)}
+.ball.sm{width:32px;height:32px;font-size:13.5px}
+.ball.hit{outline:3px solid #22a35a;outline-offset:1px}
+.ball.miss{opacity:.35}
+
+/* tabs */
+.tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:4px 0 14px}
+.tab{border:2px solid var(--line);background:#fff;border-radius:22px;padding:10px 2px;font:800 15px/1.2 "Nunito",sans-serif;color:var(--ink);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;min-height:74px;justify-content:center}
+.tab .e{font-size:22px}
+.tab[aria-selected=true]{background:linear-gradient(180deg,#ffd45c,#ffb82e);border-color:#e6a100;box-shadow:0 5px 12px rgba(230,161,0,.35)}
+
+/* controls */
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.row label{font-size:17px}
+select,input[type=number],input[type=text]{font:600 16px "Nunito",sans-serif;color:var(--ink);background:#fff;border:2px solid var(--line);border-radius:16px;padding:9px 12px;max-width:100%}
+input[type=number]{width:110px}
+select:focus,input:focus{outline:2px solid var(--gold2);outline-offset:1px}
+.hint{color:var(--mute);font-size:15px;margin:4px 0 12px}
+.modes{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.mode{border:2px solid var(--line);background:#fff;border-radius:99px;padding:9px 16px;font:800 16px "Nunito",sans-serif;color:var(--ink);cursor:pointer}
+.mode[aria-pressed=true]{background:linear-gradient(135deg,#e3262b,#ff5533);color:#fff;border-color:transparent;box-shadow:0 5px 12px rgba(227,38,43,.28)}
+
+/* highlight cards */
+.hl{border:2px solid;border-radius:22px;padding:13px 14px;margin-bottom:12px}
+.hl.most{background:#fff0f0;border-color:#ffb9b4}.hl.least{background:#eef4ff;border-color:#b9cffa}.hl.gap{background:#fff6dc;border-color:#ffd77a}
+.hlh{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.hlh b{font-size:19px;font-weight:900}
+.copy{border:2px solid var(--line);background:#fff;border-radius:99px;padding:6px 14px;font:800 14px "Nunito",sans-serif;color:var(--ink);cursor:pointer}
+.hlb{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;text-align:center}
+.hlb .ball{width:min(46px,100%);height:auto;aspect-ratio:1;margin:0 auto}
+.hlb .v{display:block;font-size:15px;font-weight:700;color:var(--mute);margin-top:6px;font-variant-numeric:tabular-nums}
+
+/* table */
+table{width:100%;border-collapse:collapse}
+th{font-size:14px;font-weight:800;color:var(--mute);text-transform:uppercase;letter-spacing:.06em;text-align:left;padding:10px 6px;border-bottom:3px solid var(--line)}
+td{padding:9px 6px;border-bottom:1.5px solid #f8ecd6;vertical-align:middle}
+td.c{font-weight:900;font-size:18px;font-variant-numeric:tabular-nums}td.c small{font-weight:600;font-size:14px;color:var(--mute)}
+td.rk{color:var(--mute);font-weight:700;width:34px}
+.meter{height:10px;border-radius:99px;background:#fbefd9;overflow:hidden;min-width:70px}
+.meter i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#ffc233,#ff5a36 60%,#d3141c)}
+.pc{font-size:12.5px;color:var(--mute);font-weight:700;margin-top:2px}
+
+/* pick */
+.pickbox{border:2px solid var(--line);border-radius:22px;padding:14px;margin-bottom:12px;background:#fffbf1}
+.slots{display:flex;gap:9px;flex-wrap:wrap;margin:6px 0 12px}
+.slot{width:46px;height:46px;border-radius:50%;background:#fbefce;display:grid;place-items:center;color:#d7bf8b;font-weight:900;font-size:19px}
+.slot.on{background:radial-gradient(circle at 32% 28%,#ff8a7a,#e0222a 62%,#b3121a);color:#fff}
+.nums{display:grid;grid-template-columns:repeat(6,1fr);gap:7px;margin:12px 0}
+.nums button{border:2px solid var(--line);background:#fff;border-radius:14px;padding:11px 0;font:800 18px "Nunito",sans-serif;color:var(--ink);cursor:pointer;font-variant-numeric:tabular-nums}
+.nums button[aria-pressed=true]{background:linear-gradient(135deg,#e3262b,#ff5533);color:#fff;border-color:transparent}
+.flex{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.grow{flex:1;min-width:150px}
+.ticket{border:2px solid var(--line);border-radius:20px;padding:12px;margin-bottom:10px;background:#fff}
+.ticket .tl{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.tier{display:flex;justify-content:space-between;font-size:15px;padding:5px 0;border-bottom:1.5px dashed #f3e2c2}
+.tier b{font-variant-numeric:tabular-nums}
+.chip{border:2px solid var(--line);background:#fff;border-radius:99px;padding:4px 12px;font:800 14px "Nunito",sans-serif;cursor:pointer;color:var(--ink)}
+.res{background:linear-gradient(180deg,#fff4f0,#fff);border:2px solid #ffc9bd;border-radius:22px;padding:16px;margin-top:14px}
+.res .balls{margin:8px 0}
+.note{font-size:14.5px;color:var(--mute);background:#fff6e0;border-radius:16px;padding:11px 14px;margin-top:14px}.note b{color:var(--ink)}
+details{margin-top:14px}summary{cursor:pointer;font-weight:800;color:var(--red)}
+.foot{text-align:center;color:var(--mute);font-size:14.5px;margin-top:22px;padding:0 6px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(30px);background:#22a35a;color:#fff;padding:12px 18px;border-radius:18px;font-weight:800;opacity:0;transition:.3s;pointer-events:none;z-index:20;max-width:92vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%)}
+.fab{position:fixed;right:16px;bottom:18px;width:54px;height:54px;border-radius:50%;border:0;background:linear-gradient(135deg,#e3262b,#ff5533);color:#fff;font-size:20px;box-shadow:0 8px 18px rgba(227,38,43,.4);cursor:pointer;z-index:10}
+.ball.hit{box-shadow:0 0 0 3px #ffc233}.ball.miss{opacity:.3}
+.xt{border:2px solid var(--line);border-radius:20px;padding:12px 14px;margin-bottom:12px}.xt>b{font-weight:900}
+.bars{display:flex;gap:6px;height:84px;margin-top:8px}.bars>div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;font-size:12px;font-weight:700;color:var(--mute)}
+.bars i{display:block;width:100%;background:linear-gradient(180deg,#ffc233,#ff5a36);border-radius:6px 6px 0 0;min-height:2px}
+.xt .pc{font-size:14px}
+.cgl{border:2px solid var(--line);border-radius:20px;padding:12px;margin-bottom:10px}.cgl .lt{font-weight:800;font-size:14.5px}.cgb.spin{opacity:.7}
+[hidden]{display:none!important}
+@media(prefers-color-scheme:dark){
+:root{color-scheme:dark;--ink:#f6e9dc;--mute:#bda996;--line:#4d3b30;--cream:#3b2c24;--card:#2b211c;--red:#ff6b5e}
+body{background:#1b1411}
+.pill,.gp button,.tab,.btn,.btn.ghost,.mode,select,input[type=number],input[type=text],.ball.plain,.copy,.nums button,.ticket,.chip{background:#33261f;color:var(--ink)}
+.lc,.pickbox,.res{background:#2b211c}.res{border-color:#6b3b30}.note{background:#3b2c24}
+.hl.most{background:#4a2326;border-color:#7a3a3a}.hl.least{background:#1f2b45;border-color:#3a5288}.hl.gap{background:#46381b;border-color:#8a6a1e}
+.slot{background:#3b2c24;color:#8a7566}td{border-bottom-color:#3b2c24}.meter{background:#3b2c24}.tier{border-bottom-color:#4d3b30}
+}
+@media(max-width:460px){.ball{width:38px;height:38px;font-size:15px}.nums{gap:5px}.tab{font-size:12.5px;padding:10px 0}.tab .e{font-size:20px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <h1>🎰 Thống kê Vietlott</h1>
+    <span class="pill" id="srv"><i></i><span>Đang tải…</span></span>
+  </div>
+
+  <div class="card" style="padding:14px">
+    <div class="gp" id="gp">
+      <button data-g="645">Mega 6/45</button>
+      <button data-g="655">Power 6/55</button>
+    </div>
+    <div class="dataline" id="dataline"></div>
+    <div class="rule">📖 Mới chơi? Xem <a href="https://vietlott.vn" target="_blank" rel="noopener">luật chơi &amp; cơ cấu giải thưởng chính thức</a> trên trang Vietlott.</div>
+  </div>
+
+  <div class="card">
+    <div class="flex" style="justify-content:space-between;margin-bottom:10px">
+      <div><h2 style="margin:0">📡 Kết quả mới nhất</h2>
+        <div class="hint" style="margin:2px 0 0">Quay 18:00 · 6/55: T3-T5-T7 · 6/45: T4-T6-CN</div></div>
+      <button class="btn" id="syncBtn" hidden>🔄 Kiểm tra ngay</button>
+    </div>
+    <div class="live" id="live"></div>
+  </div>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab" data-t="check"><span class="e">🔍</span>Dò số</button>
+    <button class="tab" data-t="stats"><span class="e">📊</span>Thống kê</button>
+    <button class="tab" data-t="pred"><span class="e">🎯</span>Dự đoán</button>
+    <button class="tab" data-t="hist"><span class="e">🗂️</span>Kết quả</button>
+    <button class="tab" data-t="cage"><span class="e">🎰</span>Lồng cầu</button>
+  </nav>
+
+  <!-- DÒ SỐ -->
+  <div class="card" id="t-check" hidden>
+    <h2>Chọn bộ số của bạn</h2>
+    <div class="pickbox">
+      <div class="hint" id="pickHint" style="margin:0"></div>
+      <div class="slots" id="slots"></div>
+      <div class="flex" style="justify-content:flex-end">
+        <button class="btn" id="rndBtn">🎲 Ngẫu nhiên</button><button class="btn ghost" id="clrBtn">Xoá</button>
+      </div>
+      <div class="nums" id="nums"></div>
+      <div class="flex"><input type="text" id="paste" class="grow" placeholder='Dán nhanh: "6 17 23 24 32 42"'><button class="btn" id="applyBtn">Áp dụng</button></div>
+    </div>
+    <div class="flex" style="margin-bottom:12px">
+      <button class="btn gold" id="addBtn">➕ Thêm vào danh sách dò</button>
+      <button class="btn red" id="goBtn">🔍 Dò số</button>
+      <button class="btn" id="favBtn">💾 Lưu yêu thích</button>
+    </div>
+    <div id="favs"></div>
+    <div id="tickets"></div>
+    <div id="checkRes"></div>
+  </div>
+
+  <!-- THỐNG KÊ -->
+  <div class="card" id="t-stats" hidden>
+    <h2 id="stTitle"></h2>
+    <div class="row"><label for="range">Phạm vi:</label>
+      <select id="range">
+        <option value="all">Tất cả các kỳ</option><option value="10">10 kỳ gần nhất</option>
+        <option value="100">100 kỳ gần nhất</option><option value="1000">1000 kỳ gần nhất</option>
+      </select></div>
+    <div class="row"><label for="sort">Sắp xếp:</label>
+      <select id="sort"><option value="desc">Ra nhiều nhất trước</option><option value="asc">Ra ít nhất trước</option></select></div>
+    <div class="hint" id="stSum"></div>
+    <div class="modes" id="modes"></div>
+    <div id="hls"></div><div id="extra"></div>
+    <table><thead><tr><th>#</th><th>Số</th><th>Số lần ra</th><th>Tỷ lệ</th></tr></thead><tbody id="stBody"></tbody></table>
+  </div>
+
+  <!-- DỰ ĐOÁN -->
+  <div class="card" id="t-pred" hidden>
+    <h2 id="prTitle"></h2>
+    <p class="hint">Bộ số được <b>cố định theo từng kỳ</b>: thoát ra vào lại vẫn y nguyên, chỉ đổi khi có kết quả mới. Giải trí thôi nha — xổ số là ngẫu nhiên, kỳ trước không ảnh hưởng kỳ sau! 😄</p>
+    <div class="row"><label for="predM">Phương thức:</label><select id="predM"></select></div>
+    <div class="hint" id="predDesc" style="margin-top:12px"></div>
+    <div class="res" id="predRes"></div>
+    <h2 style="font-size:18px;margin-top:22px">📋 Bảng dự đoán đủ phương pháp</h2>
+    <table><thead><tr><th>Phương pháp</th><th>Bộ số</th></tr></thead><tbody id="predAll"></tbody></table>
+    <h2 style="font-size:18px;margin-top:22px">✅ Đối chiếu với kết quả</h2><div id="predRev"></div>
+    <details><summary>Kiểm chứng ngược – các cách này có thật sự hiệu quả?</summary>
+      <p class="hint" id="btSub"></p>
+      <table><thead><tr><th>Phương pháp</th><th>Số trúng / kỳ</th><th>So với ngẫu nhiên</th></tr></thead><tbody id="bt"></tbody></table>
+    </details>
+    <div class="note"><b>Lưu ý thẳng thắn:</b> mỗi kỳ quay độc lập – mọi bộ 6 số có xác suất trúng như nhau. Bảng kiểm chứng ngược cho thấy các công thức này không khác ngẫu nhiên đáng kể.</div>
+  </div>
+
+  <!-- KẾT QUẢ -->
+  <div class="card" id="t-hist" hidden>
+    <h2 id="hsTitle"></h2>
+    <table><tbody id="hsBody"></tbody></table>
+  </div>
+  <div class="card" id="t-cage" hidden>
+    <div class="flex" style="justify-content:space-between"><h2 id="cgTitle" style="margin:0"></h2><button class="btn" id="cgSnd" aria-label="Âm thanh">🔇</button></div>
+    <p class="hint">5 dãy được bốc <b>hoàn toàn ngẫu nhiên</b> bằng <code>crypto.getRandomValues</code> của trình duyệt (không dùng thống kê — phần thống kê nằm ở tab Dự đoán). Mỗi bộ số đều có cơ hội trúng như nhau! 😄</p>
+    <div class="modes" id="cgModes"></div>
+    <label class="hint" style="display:flex;gap:8px;align-items:center;margin-top:0"><input type="checkbox" id="cgDistinct"> 5 dãy không trùng số nào</label>
+    <div id="cgLines"></div><div class="hint" id="cgNote"></div>
+    <button class="btn red" id="cgGo" style="width:100%"></button>
+    <div class="row" style="justify-content:space-between;margin:18px 0 0"><b id="cgHistTitle"></b><button class="chip" id="cgClear">Xóa</button></div>
+    <div class="hint" id="cgSum"></div><div id="cgHist"></div>
+  </div>
+
+  <div class="foot">Nguồn dữ liệu: ketquadientoan.com (chính) và minhngoc.net.vn (dự phòng, đối chiếu chéo). Trang cá nhân phi thương mại, <b>không phải trang chính thức của Vietlott</b> — kết quả chính thức xem tại vietlott.vn. Chỉ dành cho người từ 18 tuổi; xổ số là ngẫu nhiên, hãy chơi có trách nhiệm.</div>
+</div>
+<button class="fab" id="fab" aria-label="Lên đầu trang">▲</button>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="data.js" onerror="void 0"></script>
+<script>
+"use strict";
+const G = {
+  "655": {name: "Power 6/55", max: 55, bonus: true,  days: [2,4,6]},
+  "645": {name: "Mega 6/45",  max: 45, bonus: false, days: [3,5,0]}
+};
+const WD = ["CN","T2","T3","T4","T5","T6","T7"];
+const S = {game: "655", tab: "stats", range: "all", sort: "desc", mode: "main", predN: 20, predM: "pos", seed: 0, pick: [], tickets: []};
+let DATA = null, STATUS = null, serverMode = false, lastShell = "";
+const BT = {};
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pad = n => String(n).padStart(2, "0");
+const fmtDate = iso => { const [y,m,d] = iso.split("-"); return `${d}/${m}/${y}`; };
+const wdOf = iso => { const [y,m,d] = iso.split("-").map(Number); return WD[new Date(Date.UTC(y,m-1,d)).getUTCDay()]; };
+const rowsOf = g => DATA.games[g].rows;
+const ball = (n, cls = "") => `<span class="ball ${cls}">${pad(n)}</span>`;
+const ballsHtml = (r, cls = "") => r.n.map(n => ball(n, cls)).join("") + (r.b ? `<span class="plus">+</span>${ball(r.b, "gold " + cls)}` : "");
+const vi = n => n.toLocaleString("vi");
+function store(k, v) { try { if (v === undefined) return JSON.parse(localStorage.getItem(k) || "null"); localStorage.setItem(k, JSON.stringify(v)); } catch (e) { return null; } }
+
+function nowVN() { const d = new Date(); return new Date(d.getTime() + (420 + d.getTimezoneOffset()) * 60000); }
+const isoOf = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+
+/* ───────── Kết quả realtime ───────── */
+function nextDraw(g, now) {
+  for (let i = 0; i < 8; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i, 18, 0, 0);
+    if (G[g].days.includes(d.getDay()) && d > now) return d;
+  }
+}
+function renderLive() {
+  const now = nowVN(), today = isoOf(now);
+  const parts = ["655", "645"].map(g => {
+    const r = rowsOf(g)[0];
+    const waiting = G[g].days.includes(now.getDay()) && now.getHours() >= 18 && r.d < today;
+    let nx;
+    if (waiting) nx = `<span class="badge wait">⏳ Đang chờ kết quả hôm nay…</span>${serverMode ? " <span style='font-size:12.5px'>tự kiểm tra mỗi phút</span>" : ""}`;
+    else {
+      const t = nextDraw(g, now), ms = t - now, h = Math.floor(ms / 3600000), m = Math.floor(ms % 3600000 / 60000), s = Math.floor(ms % 60000 / 1000);
+      nx = `Kỳ tới: <b>${WD[t.getDay()]}, ${pad(t.getDate())}/${pad(t.getMonth()+1)} 18:00</b> · còn <b>${h >= 24 ? Math.floor(h / 24) + " ngày " : ""}${h % 24}g ${pad(m)}p ${pad(s)}s</b>`;
+    }
+    return [`<div class="lc"><div class="lh"><span class="nm">${G[g].name}</span>
+      <span class="dt">${wdOf(r.d)}, ${fmtDate(r.d)} ${r.d === today ? '<span class="badge new">Hôm nay</span>' : ""}</span></div>
+      <div class="balls">${ballsHtml(r)}</div>
+      <div class="dt">${setInfo(r.n)}</div>
+      <div class="dt">Jackpot${g === "655" ? " 1" : ""}: <b style="color:var(--ink)">${esc(r.j) || "—"}</b></div>
+      <div class="nx"></div></div>`, nx];
+  });
+  const shell = parts.map(x => x[0]).join("");
+  if (shell !== lastShell) { $("#live").innerHTML = shell; lastShell = shell; }
+  const els = $("#live").querySelectorAll(".nx");
+  parts.forEach((x, i) => { if (els[i] && els[i].innerHTML !== x[1]) els[i].innerHTML = x[1]; });
+}
+
+/* ───────── Thống kê ───────── */
+const numsOf = (r, mode) => mode === "bonus" ? (r.b ? [r.b] : []) : mode === "both" && r.b ? r.n.concat([r.b]) : r.n;
+function computeStats(g, range, mode) {
+  const rows = rowsOf(g), max = G[g].max;
+  const sub = range === "all" ? rows : rows.slice(0, +range);
+  const cnt = new Array(max + 1).fill(0), gap = new Array(max + 1).fill(-1);
+  for (const r of sub) for (const n of numsOf(r, mode)) cnt[n]++;
+  rows.forEach((r, i) => { for (const n of numsOf(r, mode)) if (gap[n] < 0) gap[n] = i; });
+  const list = [];
+  for (let n = 1; n <= max; n++) list.push({n, c: cnt[n], gap: gap[n] < 0 ? rows.length : gap[n]});
+  return {list, sub};
+}
+function renderStats() {
+  const g = S.game, max = G[g].max;
+  if (!G[g].bonus) S.mode = "main";
+  const modeLabel = {main: `Thống kê số chính (1–${max})`, bonus: "Thống kê số phụ", both: "Cả số chính + số phụ"};
+  $("#stTitle").textContent = `📊 Thống kê tần suất — ${G[g].name}`;
+  $("#modes").innerHTML = (G[g].bonus ? ["main", "bonus", "both"] : ["main"]).map(m =>
+    `<button class="mode" data-m="${m}" aria-pressed="${S.mode === m}">${m === "main" ? "🔴 " : m === "bonus" ? "🟡 " : "⚪ "}${modeLabel[m]}</button>`).join("");
+  const {list, sub} = computeStats(g, S.range, S.mode);
+  const nn = sub.length, pp = (S.mode === "bonus" ? 1 : S.mode === "both" ? 7 : 6) / max, ee = nn * pp, sd = Math.sqrt(nn * pp * (1 - pp));
+  const dev = x => sd > 0 && Math.abs(x.c - ee) > 2 * sd;
+  $("#stSum").textContent = sub.length ? `Thống kê trên ${vi(sub.length)} kỳ (${fmtDate(sub[sub.length - 1].d)} → ${fmtDate(sub[0].d)}). Kỳ vọng ≈ ${ee.toFixed(1)} lần/số (±${sd.toFixed(1)}); ${list.filter(dev).length}/${max} số lệch quá 2σ — khoảng 5% số lệch như vậy là bình thường do ngẫu nhiên.` : "Chưa có dữ liệu.";
+  const byMost = list.slice().sort((a, b) => b.c - a.c || a.n - b.n);
+  const byLeast = list.slice().sort((a, b) => a.c - b.c || a.n - b.n);
+  const byGap = list.slice().sort((a, b) => b.gap - a.gap || a.n - b.n);
+  const hl = (cls, title, items, ballCls, val) => `<div class="hl ${cls}"><div class="hlh"><b>${title}</b>
+      <button class="copy" data-nums="${items.map(x => pad(x.n)).join(" ")}">📋 Copy</button></div>
+      <div class="hlb">${items.map(x => `<div>${ball(x.n, ballCls)}<span class="v">${val(x)}</span></div>`).join("")}</div></div>`;
+  $("#hls").innerHTML =
+    hl("most", "🔥 Ra nhiều nhất", byMost.slice(0, 6), "", x => x.c) +
+    hl("least", "🧊 Ra ít nhất", byLeast.slice(0, 6), "blue", x => x.c) +
+    hl("gap", "⏳ Lâu chưa ra", byGap.slice(0, 6), "dash", x => x.gap + " kỳ");
+  const ordered = S.sort === "desc" ? byMost : byLeast, mx = Math.max(...list.map(x => x.c), 1);
+  $("#stBody").innerHTML = ordered.map((x, i) => `<tr><td class="rk">${i + 1}</td><td>${ball(x.n, "plain")}</td>
+    <td class="c">${x.c} <small>/ ${vi(sub.length)} kỳ</small><div class="pc">${x.gap === 0 ? "vừa ra kỳ gần nhất" : "vắng " + x.gap + " kỳ"}${dev(x) ? " · ⚠ lệch >2σ" : ""}</div></td>
+    <td style="width:32%"><div class="meter"><i style="width:${(x.c / mx * 100).toFixed(1)}%"></i></div><div class="pc">${sub.length ? (x.c / sub.length * 100).toFixed(1) : 0}%</div></td></tr>`).join("");
+  renderExtra(g, sub, max);
+}
+function renderExtra(g, sub, max) {
+  const n = sub.length, el = $("#extra");
+  if (!n) { el.innerHTML = ""; return; }
+  const ev = new Array(7).fill(0), sums = [], pairs = {}; let cons = 0;
+  for (const r of sub) {
+    const s = r.n.slice().sort((a, b) => a - b);
+    ev[s.filter(x => x % 2 === 0).length]++; sums.push(s.reduce((a, b) => a + b, 0));
+    if (s.some((x, i) => i && x - s[i - 1] === 1)) cons++;
+    for (let i = 0; i < 6; i++) for (let j = i + 1; j < 6; j++) { const k = s[i] * 100 + s[j]; pairs[k] = (pairs[k] || 0) + 1; }
+  }
+  sums.sort((a, b) => a - b);
+  const q = p => sums[Math.min(n - 1, Math.floor(p * n))], avg = Math.round(sums.reduce((a, b) => a + b, 0) / n);
+  const pe = n * 30 / (max * (max - 1)), mxe = Math.max(...ev);
+  const top = Object.entries(pairs).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const jr = rowsOf(g).slice(0, 120).filter(r => r.jv > 0).reverse();
+  let spark = "";
+  if (jr.length > 2) {
+    const lo = Math.min(...jr.map(r => r.jv)), hi = Math.max(...jr.map(r => r.jv)), W = 300, H = 70;
+    const pts = jr.map((r, i) => `${(i / (jr.length - 1) * W).toFixed(1)},${(H - 4 - (r.jv - lo) / ((hi - lo) || 1) * (H - 8)).toFixed(1)}`).join(" ");
+    spark = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="Jackpot theo kỳ"><polyline points="${pts}" fill="none" stroke="#d3141c" stroke-width="2.5" stroke-linejoin="round"/></svg><div class="pc">${jr.length} kỳ gần nhất (${fmtDate(jr[0].d)} → ${fmtDate(jr[jr.length - 1].d)}): ${lo} → ${hi} tỷ</div>`;
+  }
+  el.innerHTML = `<div class="xt"><b>⚖️ Số chẵn mỗi kỳ</b><div class="bars">${ev.map((c, i) => `<div><span>${(c / n * 100).toFixed(0)}%</span><i style="height:${(c / mxe * 60).toFixed(0)}px"></i><span>${i}C</span></div>`).join("")}</div></div>
+  <div class="xt"><b>➕ Tổng 6 số</b><div class="pc">Trung bình ${avg} · 80% số kỳ nằm trong ${q(.1)}–${q(.9)}</div></div>
+  <div class="xt"><b>🔗 Có số liền kề</b><div class="pc">${(cons / n * 100).toFixed(0)}% số kỳ có ít nhất 1 cặp số liền nhau (vd 17-18)</div></div>
+  <div class="xt"><b>👫 Cặp hay đi cùng</b><div class="pc">${top.map(([k, c]) => `${pad(Math.floor(k / 100))}-${pad(k % 100)}: ${c} lần`).join(" · ")} — kỳ vọng mỗi cặp ≈ ${pe.toFixed(1)} lần</div></div>
+  ${spark ? `<div class="xt"><b>💰 Jackpot theo kỳ</b>${spark}</div>` : ""}`;
+}
+
+/* ───────── Dự đoán ───────── */
+function mulberry32(a) { return function() { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function topK(score, max, k = 6) {
+  const ids = Array.from({length: max}, (_, i) => i + 1);
+  ids.sort((a, b) => score[b] - score[a] || a - b);
+  return ids.slice(0, k).sort((a, b) => a - b);
+}
+function zs(arr, max) {
+  const v = arr.slice(1, max + 1), m = v.reduce((s, x) => s + x, 0) / max, sd = Math.sqrt(v.reduce((s, x) => s + (x - m) * (x - m), 0) / max) || 1;
+  return arr.map(x => (x - m) / sd);
+}
+function posMean(rows, max, N) {
+  const w = rows.slice(0, N), out = [];
+  for (let i = 0; i < 6; i++) out.push(Math.round(w.reduce((s, r) => s + r.n.slice().sort((a, b) => a - b)[i], 0) / w.length));
+  for (let i = 0; i < 6; i++) out[i] = Math.max(out[i], i ? out[i - 1] + 1 : 1);
+  for (let i = 5; i >= 0; i--) out[i] = Math.min(out[i], max - (5 - i));
+  return out;
+}
+function detMethods(rows, max, N) {
+  const fN = new Array(max + 1).fill(0), fAll = new Array(max + 1).fill(0), gap = new Array(max + 1).fill(-1);
+  rows.forEach((r, i) => { for (const n of r.n) { fAll[n]++; if (i < N) fN[n]++; if (gap[n] < 0) gap[n] = i; } });
+  for (let n = 1; n <= max; n++) if (gap[n] < 0) gap[n] = rows.length;
+  const a = zs(fN, max), b = zs(fAll, max), c = zs(gap, max);
+  const bal = a.map((_, i) => .4 * a[i] + .3 * b[i] + .3 * c[i]);
+  return {pos: posMean(rows, max, N), hot: topK(fN.map((x, i) => x * 1000 + fAll[i]), max), cold: topK(gap, max), all: topK(fAll, max), bal: topK(bal, max), fN};
+}
+function weightedPick(weights, max, rnd, k = 6) {
+  const w = weights.slice(), out = [];
+  while (out.length < k) {
+    let tot = 0; for (let n = 1; n <= max; n++) tot += w[n];
+    let x = rnd() * tot, pick = max;
+    for (let n = 1; n <= max; n++) { x -= w[n]; if (x <= 0) { pick = n; break; } }
+    out.push(pick); w[pick] = 0;
+  }
+  return out.sort((a, b) => a - b);
+}
+const METHODS = [
+  ["pos",  "Trung bình cộng theo vị trí", "Xếp mỗi kỳ từ nhỏ đến lớn, lấy trung bình cộng của từng vị trí trong N kỳ gần nhất."],
+  ["hot",  "Số nóng (ra nhiều nhất trong N kỳ)", "6 số xuất hiện nhiều nhất trong N kỳ gần nhất."],
+  ["cold", "Số lâu chưa ra", "6 số vắng mặt lâu nhất tính đến hiện tại. ⚠ Đây là \"ngụy biện con bạc\": số vắng lâu không có khả năng ra cao hơn."],
+  ["all",  "Tần suất toàn thời gian", "6 số ra nhiều nhất từ kỳ đầu tiên đến nay."],
+  ["bal",  "Điểm tổng hợp", "40% nóng trong N kỳ + 30% toàn thời gian + 30% lâu chưa ra."],
+  ["wr",   "Ngẫu nhiên có trọng số", "Bốc ngẫu nhiên, số ra nhiều trong N kỳ dễ được chọn hơn."],
+  ["rnd",  "Ngẫu nhiên thuần", "Bốc ngẫu nhiên hoàn toàn đều."]
+];
+const setInfo = s => `Tổng ${s.reduce((a, b) => a + b, 0)} · ${s.filter(x => x % 2 === 0).length} chẵn / ${s.filter(x => x % 2).length} lẻ`;
+const PRED_N = 20;
+const hashSeed = str => { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+// 7 bộ số cho kỳ kế tiếp: chỉ phụ thuộc dữ liệu đã có + ngày kỳ cuối => mở lại app vẫn y nguyên đến khi có kỳ mới
+function predSets(g, rows) {
+  const max = G[g].max, d = detMethods(rows, max, Math.min(PRED_N, rows.length)), rnd = mulberry32(hashSeed(g + rows[0].d));
+  return {pos: d.pos, hot: d.hot, cold: d.cold, all: d.all, bal: d.bal,
+    wr: weightedPick(d.fN.map(x => x + 1), max, rnd), rnd: weightedPick(new Array(max + 1).fill(1), max, rnd)};
+}
+// dựng lại đúng bộ đã dự đoán TRƯỚC mỗi kỳ gần đây rồi đếm số trúng
+function predReview(g, K) {
+  const rows = rowsOf(g), out = [];
+  for (let t = 0; t < K && t + 60 < rows.length; t++) {
+    const sets = predSets(g, rows.slice(t + 1)), act = new Set(rows[t].n), hits = {};
+    for (const [k] of METHODS) hits[k] = sets[k].filter(x => act.has(x));
+    out.push({r: rows[t], sets, hits});
+  }
+  return out;
+}
+const pname = k => METHODS.find(x => x[0] === k)[1].replace(/ \(.*\)/, "");
+function renderReview(g) {
+  const rv = predReview(g, 10), el = $("#predRev");
+  if (!rv.length) { el.innerHTML = '<div class="hint">Chưa đủ dữ liệu để đối chiếu.</div>'; return; }
+  const last = rv[0], r = last.r, base = 36 / G[g].max;
+  const res = r.n.map(x => ball(x, "sm")).join("") + (r.b ? '<span class="plus">+</span>' + ball(r.b, "gold sm") : "");
+  const rowsH = METHODS.map(([k]) => `<tr><td><b>${pname(k)}</b></td><td><div class="flex" style="gap:5px">${last.sets[k].map(x => ball(x, "sm" + (r.n.includes(x) ? " hit" : " miss"))).join("")}</div><div class="pc">trúng ${last.hits[k].length}/6</div></td></tr>`).join("");
+  const sumH = METHODS.map(([k]) => { const tot = rv.reduce((a, x) => a + x.hits[k].length, 0), best = Math.max(...rv.map(x => x.hits[k].length));
+    return `<tr><td>${pname(k)}</td><td class="c">${tot}</td><td class="c">${(tot / rv.length).toFixed(2)}</td><td class="c">${best}</td></tr>`; }).join("");
+  el.innerHTML = `<div class="hint" style="margin:0 0 6px">Kết quả ${fmtDate(r.d)}:</div><div class="flex" style="gap:5px">${res}</div><div class="hint" style="margin:4px 0 10px">${setInfo(r.n)}</div>
+  <table><thead><tr><th>Phương pháp</th><th>Bộ đã dự đoán trước kỳ này</th></tr></thead><tbody>${rowsH}</tbody></table>
+  <div class="hint">Tổng hợp ${rv.length} kỳ gần nhất (chọn ngẫu nhiên kỳ vọng ≈ ${base.toFixed(2)} số/kỳ):</div>
+  <table><thead><tr><th>Phương pháp</th><th>Tổng</th><th>TB/kỳ</th><th>Cao nhất</th></tr></thead><tbody>${sumH}</tbody></table>`;
+}
+function renderPred() {
+  const g = S.game, rows = rowsOf(g), max = G[g].max, N = Math.min(PRED_N, rows.length);
+  $("#prTitle").textContent = `🎯 Dự đoán số — ${G[g].name}`;
+  $("#predM").innerHTML = METHODS.map(([k, n]) => `<option value="${k}" ${S.predM === k ? "selected" : ""}>${n}</option>`).join("");
+  const sets = predSets(g, rows);
+  const m = METHODS.find(x => x[0] === S.predM), s = sets[S.predM];
+  $("#predDesc").textContent = m[2] + ` (dựa trên ${N} kỳ gần nhất)`;
+  $("#predRes").innerHTML = `<b style="font-size:18px">Bộ số gợi ý cho kỳ tiếp theo</b>
+    <div class="hint" style="margin:2px 0 6px">Cố định từ kết quả ${fmtDate(rows[0].d)}, chỉ đổi khi có kỳ mới.</div>
+    <div class="balls">${s.map(n => ball(n)).join("")}</div>
+    <div class="flex" style="justify-content:space-between"><span class="hint" style="margin:0">${setInfo(s)}</span>
+    <span class="flex"><button class="copy" data-nums="${s.map(pad).join(" ")}">📋 Copy</button><button class="copy" id="toCheck">🔍 Dò bộ này</button></span></div>`;
+  $("#predAll").innerHTML = METHODS.map(([k, n]) => `<tr><td><b>${n.replace(/ \(.*\)/, "")}</b><div class="pc">${setInfo(sets[k])}</div></td><td><div class="flex" style="gap:5px">${sets[k].map(x => ball(x, "sm")).join("")}</div></td></tr>`).join("");
+  renderReview(g);
+
+  const ck = g + "|" + N + "|" + rows[0].d;
+  if (!BT[ck]) {
+    const tot = {pos: 0, hot: 0, cold: 0, all: 0, bal: 0}; let cnt = 0;
+    for (let t = 0; t < 300 && t + 200 < rows.length; t++) {
+      const mm = detMethods(rows.slice(t + 1), max, N), act = new Set(rows[t].n);
+      for (const k in tot) tot[k] += mm[k].filter(x => act.has(x)).length;
+      cnt++;
+    }
+    BT[ck] = {tot, cnt};
+  }
+  const {tot, cnt} = BT[ck];
+  const base = 36 / max, vr = 6 * (6 / max) * (1 - 6 / max) * (max - 6) / (max - 1), se = cnt ? Math.sqrt(vr / cnt) : 0;
+  $("#btSub").textContent = `Thử dự đoán lại ${cnt} kỳ gần nhất, mỗi kỳ chỉ dùng dữ liệu trước đó (N = ${N}). Chọn ngẫu nhiên kỳ vọng ${base.toFixed(3)} số trúng / kỳ; dao động bình thường ±${(2 * se).toFixed(3)} (2 sai số chuẩn).`;
+  $("#bt").innerHTML = METHODS.slice(0, 5).map(([k, n]) => { const a = cnt ? tot[k] / cnt : 0, df = (a / base - 1) * 100, sig = Math.abs(a - base) > 2 * se;
+    return `<tr><td>${n.replace(/ \(.*\)/, "")}</td><td class="c" style="font-size:16px">${a.toFixed(3)}</td><td class="c" style="font-size:16px">${df >= 0 ? "+" : ""}${df.toFixed(1)}%<div class="pc">${sig ? "lệch >2σ (thử 5 cách nên dễ trùng hợp)" : "≈ ngẫu nhiên"}</div></td></tr>`; }).join("");
+  $("#toCheck")?.addEventListener("click", () => { S.pick = s.slice(); setTab("check"); });
+}
+
+/* ───────── Dò số ───────── */
+const TIERS = g => G[g].bonus ? [["j1", "Jackpot 1 (6 số)"], ["j2", "Jackpot 2 (5 số + số phụ)"], ["m5", "Giải nhất (5 số)"], ["m4", "Giải nhì (4 số)"], ["m3", "Giải ba (3 số)"]]
+                              : [["j1", "Jackpot (6 số)"], ["m5", "Giải nhất (5 số)"], ["m4", "Giải nhì (4 số)"], ["m3", "Giải ba (3 số)"]];
+function checkTicket(g, t) {
+  const rows = rowsOf(g), set = new Set(t), tiers = {};
+  rows.forEach(r => {
+    const m = r.n.filter(x => set.has(x)).length;
+    const k = m === 6 ? "j1" : (m === 5 && G[g].bonus && r.b && set.has(r.b)) ? "j2" : m >= 3 ? "m" + m : null;
+    if (k) { (tiers[k] ||= {c: 0, last: r.d}).c++; }
+  });
+  const l = rows[0], hit = l.n.filter(x => set.has(x));
+  return {tiers, latest: l, hit, bonusHit: l.b && set.has(l.b)};
+}
+function renderPick() {
+  const g = S.game, max = G[g].max;
+  S.pick = S.pick.filter(n => n <= max);
+  $("#pickHint").textContent = `Cần chọn 6 số (1–${max}) · đã chọn ${S.pick.length}/6`;
+  const sorted = S.pick.slice().sort((a, b) => a - b);
+  $("#slots").innerHTML = Array.from({length: 6}, (_, i) => `<span class="slot ${sorted[i] ? "on" : ""}">${sorted[i] ? pad(sorted[i]) : "?"}</span>`).join("");
+  $("#nums").innerHTML = Array.from({length: max}, (_, i) => `<button data-n="${i + 1}" aria-pressed="${S.pick.includes(i + 1)}">${pad(i + 1)}</button>`).join("");
+  $("#addBtn").disabled = S.pick.length !== 6;
+  const fav = store("fav" + g) || [];
+  $("#favs").innerHTML = fav.length ? `<div class="hint" style="margin:0 0 6px">💾 Yêu thích (bấm để chọn, ✕ để xoá):</div><div class="flex" style="margin-bottom:12px">${fav.map((f, i) =>
+    `<span class="flex" style="gap:2px"><button class="chip" data-fav="${i}">${f.map(pad).join(" ")}</button><button class="chip" data-delfav="${i}">✕</button></span>`).join("")}</div>` : "";
+  $("#tickets").innerHTML = S.tickets.length ? `<div class="hint" style="margin:0 0 6px">Danh sách dò (${S.tickets.length}):</div>` + S.tickets.map((t, i) =>
+    `<div class="ticket"><div class="tl"><div class="flex" style="gap:5px">${t.map(n => ball(n, "sm")).join("")}</div><button class="chip" data-deltk="${i}">✕ Bỏ</button></div></div>`).join("") : "";
+}
+function runCheck() {
+  const g = S.game, list = S.tickets.slice();
+  const cur = S.pick.slice().sort((a, b) => a - b);
+  if (cur.length === 6 && !list.some(t => t.join() === cur.join())) list.push(cur);
+  if (!list.length) { toast("Hãy chọn đủ 6 số trước nhé", true); return; }
+  const rows = rowsOf(g);
+  $("#checkRes").innerHTML = list.map(t => {
+    const c = checkTicket(g, t), set = new Set(t);
+    const tr = TIERS(g).map(([k, n]) => `<div class="tier"><span>${n}</span><b>${c.tiers[k] ? c.tiers[k].c + " lần · gần nhất " + fmtDate(c.tiers[k].last) : "chưa từng"}</b></div>`).join("");
+    return `<div class="res"><div class="balls" style="margin-top:0">${t.map(n => ball(n, "sm " + (c.latest.n.includes(n) ? "hit" : ""))).join("")}</div>
+      <div class="hint" style="margin:0 0 8px">Kỳ mới nhất ${fmtDate(c.latest.d)}: trúng <b>${c.hit.length}</b> số${c.hit.length ? " (" + c.hit.map(pad).join(", ") + ")" : ""}${c.bonusHit ? " + số phụ" : ""}.</div>
+      ${tr}<div class="pc" style="margin-top:6px">Đối chiếu với ${vi(rows.length)} kỳ từ ${fmtDate(rows[rows.length - 1].d)}.</div></div>`;
+  }).join("");
+}
+function parsePaste(txt) {
+  const max = G[S.game].max, out = [];
+  (txt.match(/\d+/g) || []).map(Number).forEach(n => { if (n >= 1 && n <= max && !out.includes(n) && out.length < 6) out.push(n); });
+  return out;
+}
+
+/* ───────── Kết quả ───────── */
+function renderHist() {
+  const g = S.game;
+  $("#hsTitle").textContent = `🗂️ 20 kỳ gần nhất — ${G[g].name}`;
+  $("#hsBody").innerHTML = rowsOf(g).slice(0, 20).map(r => `<tr><td style="white-space:nowrap;font-weight:800;font-size:14px">${wdOf(r.d)}<br>${fmtDate(r.d)}</td>
+    <td><div class="flex" style="gap:5px">${ballsHtml(r, "sm")}</div><div class="pc" style="font-size:13.5px">${setInfo(r.n)}</div></td><td style="text-align:right;font-weight:800;font-size:14px;white-space:nowrap">${esc(r.j)}</td></tr>`).join("");
+}
+
+/* ───────── Lồng cầu ───────── */
+const L = {mode: "full", distinct: false, sets: null, shown: 0, busy: false, snd: !!store("lcSnd"), tm: [], iv: 0};
+const LC = [1, 2, 3, 4, 5];
+const rndU = () => crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296;
+let AC;
+function beep(f) { if (!L.snd) return; try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); const o = AC.createOscillator(), g = AC.createGain(); o.frequency.value = f; g.gain.value = .05; o.connect(g); g.connect(AC.destination); o.start(); o.stop(AC.currentTime + .06); } catch (e) {} }
+function lcStop() { L.tm.forEach(clearTimeout); L.tm = []; clearInterval(L.iv); L.busy = false; }
+// bốc số bằng crypto.getRandomValues (loại bỏ lệch modulo bằng rejection sampling)
+function rndInt(n) {
+  const lim = Math.floor(4294967296 / n) * n, a = new Uint32Array(1);
+  do { crypto.getRandomValues(a); } while (a[0] >= lim);
+  return a[0] % n;
+}
+function lcPick(max, k, ex) {
+  const pool = []; for (let n = 1; n <= max; n++) if (!ex.has(n)) pool.push(n);
+  const out = []; for (let i = 0; i < k; i++) out.push(pool.splice(rndInt(pool.length), 1)[0]);
+  return out.sort((a, b) => a - b);
+}
+function lcGen(g) {
+  const max = G[g].max, used = new Set(), list = [];
+  for (let i = 0; i < 5; i++) {
+    const n = lcPick(max, 6, L.distinct ? used : new Set()); n.forEach(x => used.add(x));
+    list.push({n, b: G[g].bonus ? lcPick(max, 1, new Set(n))[0] : null});
+  }
+  return list;
+}
+const drawTs = d => { const [y, m, dd] = d.split("-").map(Number); return Date.UTC(y, m - 1, dd, 11, 0, 0); }; // 18:00 giờ VN
+// kỳ chính thức ĐẦU TIÊN sau thời điểm quay lồng cầu (chưa có trong dữ liệu -> null = đang chờ)
+function lcTarget(g, t) { let hit = null; for (const r of rowsOf(g)) { if (drawTs(r.d) > t) hit = r; else break; } return hit; }
+function lcReview(g, x) {
+  const r = lcTarget(g, x.t); if (!r) return null;
+  const act = new Set(r.n), hits = x.s.map(s => s.n.filter(v => act.has(v)).length);
+  return {r, act, hits, best: Math.max(...hits)};
+}
+function lcSaveHist() { const k = "lc" + S.game, h = store(k) || []; h.unshift({t: Date.now(), s: L.sets.list}); store(k, h.slice(0, 10)); }
+function lcStart() {
+  if (L.busy) return;
+  const g = S.game, per = G[g].bonus ? 7 : 6;
+  if (L.mode === "step") {
+    if (!L.sets || L.shown >= per) { L.sets = {g, list: lcGen(g)}; L.shown = 0; }
+    L.shown++; beep(500 + L.shown * 80);
+    if (L.shown >= per) lcSaveHist();
+    renderCage(); return;
+  }
+  L.sets = {g, list: lcGen(g)}; L.shown = 0; L.busy = true; renderCage();
+  L.iv = setInterval(() => document.querySelectorAll(".cgb.spin").forEach(el => { el.textContent = pad(1 + Math.floor(rndU() * G[g].max)); }), 70);
+  for (let k = 0; k < per; k++) L.tm.push(setTimeout(() => {
+    L.shown = k + 1; beep(500 + k * 80);
+    if (k === per - 1) { clearInterval(L.iv); L.busy = false; lcSaveHist(); }
+    renderCage();
+  }, 500 + k * 280));
+}
+function renderCage() {
+  const g = S.game, per = G[g].bonus ? 7 : 6, cur = L.sets && L.sets.g === g ? L.sets.list : null, done = cur && L.shown >= per;
+  $("#cgTitle").textContent = `🎰 Lồng cầu — ${G[g].name}`;
+  $("#cgSnd").textContent = L.snd ? "🔊" : "🔇";
+  $("#cgModes").innerHTML = [["full", "⚡ Quay full"], ["step", "🎯 Từng quả"]].map(([m, t]) => `<button class="mode" data-m="${m}" aria-pressed="${L.mode === m}">${t}</button>`).join("");
+  $("#cgDistinct").checked = L.distinct;
+  $("#cgLines").innerHTML = LC.map((_, i) => {
+    const s = cur && cur[i], seq = s ? s.n.concat(s.b ? [s.b] : []) : [];
+    const balls = Array.from({length: per}, (_, k) => (k === 6 ? '<span class="plus">+</span>' : "") +
+      (s && k < L.shown ? ball(seq[k], (k === 6 ? "gold " : "") + "sm") : `<span class="ball sm plain cgb${L.busy ? " spin" : ""}">?</span>`)).join("");
+    const acts = done ? `<div class="flex"><button class="copy" data-nums="${s.n.map(pad).join(" ")}">📋 Copy</button><button class="copy" data-cgchk="${i}">🔍 Dò</button><button class="copy" data-cgfav="${i}">💾 Lưu</button></div>` : "";
+    return `<div class="cgl"><div class="lt">🎲 Dãy ${i + 1}</div><div class="balls" style="margin:6px 0 8px">${balls}</div>${acts}</div>`;
+  }).join("");
+  { const nt = nextDraw(g, nowVN()); $("#cgNote").textContent = done ? `🔎 Bộ số này sẽ tự đối chiếu với kết quả kỳ ${WD[nt.getDay()]}, ${pad(nt.getDate())}/${pad(nt.getMonth() + 1)} 18:00 (xem ở Lịch sử bên dưới).` : ""; }
+  $("#cgGo").textContent = L.mode === "full" ? "🎰 QUAY 5 DÃY" : (!cur || done ? "🎯 QUAY QUẢ ĐẦU TIÊN" : `🎯 QUAY QUẢ ${L.shown + 1}/${per}`);
+  $("#cgGo").disabled = L.busy;
+  const h = store("lc" + g) || [];
+  $("#cgHistTitle").textContent = `Lịch sử & đối chiếu (${h.length}/10)`;
+  const rvs = h.map(x => lcReview(g, x)), done2 = rvs.filter(Boolean), base = 36 / G[g].max;
+  const nLines = done2.reduce((a, v) => a + v.hits.length, 0), tot = done2.reduce((a, v) => a + v.hits.reduce((p, q) => p + q, 0), 0);
+  $("#cgSum").textContent = done2.length ? `Đã đối chiếu ${done2.length} lần quay (${nLines} dãy): trung bình trúng ${(tot / nLines).toFixed(2)}/6 số mỗi dãy — ngẫu nhiên kỳ vọng ≈ ${base.toFixed(2)}.` : "";
+  $("#cgHist").innerHTML = h.length ? h.map((x, i) => {
+    const rv = rvs[i], when = new Date(x.t).toLocaleString("vi");
+    const head = rv ? `${when} · kỳ ${fmtDate(rv.r.d)} · cao nhất ${rv.best}/6` : `${when} · ⏳ chờ kết quả kỳ tiếp theo`;
+    const res = rv ? `<div class="hint" style="margin:6px 0 4px">Kết quả ${fmtDate(rv.r.d)}:</div><div class="flex" style="gap:5px">${ballsHtml(rv.r, "sm")}</div><div class="hint" style="margin:4px 0 8px">${setInfo(rv.r.n)}</div>` : "";
+    const lines = x.s.map((s, k) => `<div class="flex" style="gap:5px;margin-top:6px">${s.n.map(v => ball(v, "sm" + (rv ? (rv.act.has(v) ? " hit" : " miss") : ""))).join("")}${s.b ? '<span class="plus">+</span>' + ball(s.b, "gold sm" + (rv && rv.r.b ? (s.b === rv.r.b ? " hit" : " miss") : "")) : ""}</div><div class="pc" style="font-size:13.5px">Dãy ${k + 1}${rv ? " · trúng " + rv.hits[k] + "/6" : ""} · ${setInfo(s.n)}</div>`).join("");
+    return `<details${i === 0 ? " open" : ""}><summary>${head}</summary>${res}${lines}</details>`;
+  }).join("") : '<div class="hint">Chưa có lịch sử quay</div>';
+}
+
+/* ───────── Điều khiển chung ───────── */
+function setTab(t) {
+  S.tab = t;
+  document.querySelectorAll(".tab").forEach(b => b.setAttribute("aria-selected", b.dataset.t === t));
+  for (const k of ["check", "stats", "pred", "hist", "cage"]) $("#t-" + k).hidden = k !== t;
+  if (t === "check") renderPick(); if (t === "stats") renderStats(); if (t === "pred") renderPred(); if (t === "hist") renderHist(); if (t === "cage") renderCage();
+}
+function setGame(g) {
+  lcStop(); L.sets = null; L.shown = 0; S.game = g; S.mode = "main"; S.pick = []; S.tickets = store("tk" + g) || []; $("#checkRes").innerHTML = "";
+  document.querySelectorAll("#gp button").forEach(b => b.setAttribute("aria-pressed", b.dataset.g === g));
+  renderTop(); setTab(S.tab);
+}
+function renderTop() {
+  const rows = rowsOf(S.game);
+  $("#dataline").innerHTML = `Dữ liệu: <b>${vi(rows.length)} kỳ</b> (${rows[rows.length - 1].d} → ${rows[0].d}) · ${serverMode || location.protocol.startsWith("http") ? "tự cập nhật" : "dữ liệu tĩnh"} · <a href="#" id="reload">Tải lại mới nhất</a>`;
+  $("#reload").onclick = async e => { e.preventDefault(); if (serverMode) await pull(true); else { await pullStatic(); toast("Đã tải lại dữ liệu mới nhất"); } };
+  renderLive();
+}
+function setPill() {
+  const el = $("#srv"), t = el.querySelector("span");
+  el.className = "pill"; el.title = "";
+  if (!serverMode) { t.textContent = location.protocol.startsWith("http") ? "Dữ liệu tự cập nhật sau mỗi kỳ quay" : "Đang xem file tĩnh – không tự cập nhật"; return; }
+  const errs = Object.entries(STATUS || {}).filter(([, s]) => s.error);
+  const lc = Object.values(STATUS || {}).map(s => s.last_check).filter(Boolean).sort().pop();
+  if (errs.length) { el.classList.add("err"); t.textContent = "Lỗi lấy dữ liệu (xem chi tiết)"; el.title = errs.map(([g, s]) => G[g].name + ": " + s.error).join("\n"); }
+  else { el.classList.add("ok"); t.textContent = "Tự cập nhật · kiểm tra lúc " + (lc ? lc.slice(11, 19) : "—"); }
+}
+let toastT;
+function toast(msg, warn) { const t = $("#toast"); t.textContent = msg; t.style.background = warn ? "#d3141c" : "#22a35a"; t.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), 6500); }
+
+async function pull(manual) {
+  try {
+    const r = await fetch(manual ? "/api/sync" : "/api/data", {method: manual ? "POST" : "GET", cache: "no-store"});
+    if (!r.ok) throw 0;
+    const j = await r.json();
+    const before = DATA ? ["655", "645"].map(g => rowsOf(g).length) : null;
+    DATA = j; STATUS = j.status; serverMode = true;
+    const after = ["655", "645"].map(g => rowsOf(g).length);
+    if (before && (before[0] !== after[0] || before[1] !== after[1])) {
+      const gs = ["655", "645"].filter((g, i) => after[i] !== before[i]);
+      renderTop(); setTab(S.tab); notifyTickets(gs);
+      toast("🎉 Có kết quả mới: " + gs.map(g => `${G[g].name} ${fmtDate(rowsOf(g)[0].d)} → ${rowsOf(g)[0].n.map(pad).join(" ")}${rowsOf(g)[0].b ? " + " + pad(rowsOf(g)[0].b) : ""}`).join(" | ") + " (đã ghi vào file .ods)");
+    } else if (manual) toast("Đã kiểm tra – chưa có kỳ mới");
+    setPill(); return true;
+  } catch (e) { return false; }
+}
+
+function notifyTickets(gs) {
+  const msgs = [];
+  for (const g of gs) {
+    const parts = [], rv = predReview(g, 1)[0], r = rowsOf(g)[0], all = (store("tk" + g) || []).concat(store("fav" + g) || []);
+    if (rv) { const best = Math.max(...METHODS.map(([k]) => rv.hits[k].length)), nm = METHODS.filter(([k]) => rv.hits[k].length === best).map(([k]) => pname(k));
+      parts.push(`dự đoán trúng cao nhất ${best}/6 (${nm[0]}${nm.length > 1 ? " +" + (nm.length - 1) : ""})`); }
+    if (all.length) parts.push(`vé đã lưu trúng tối đa ${Math.max(...all.map(t => r.n.filter(x => t.includes(x)).length))}/6`);
+    let lb = -1; for (const x of (store("lc" + g) || [])) { const rv = lcReview(g, x); if (rv && rv.r.d === r.d) lb = Math.max(lb, rv.best); }
+    if (lb >= 0) parts.push(`lồng cầu trúng cao nhất ${lb}/6`);
+    if (parts.length) msgs.push(`${G[g].name}: ${parts.join(", ")}`);
+  }
+  if (msgs.length) setTimeout(() => toast("🎫 " + msgs.join(" | ")), 7000);
+}
+async function pullStatic() {
+  try {
+    const r = await fetch("data.js?t=" + Date.now(), {cache: "no-store"});
+    if (!r.ok) return;
+    const txt = (await r.text()).trim().replace(/^window\.LOTTO_DATA=/, "").replace(/;$/, "");
+    const j = JSON.parse(txt);
+    const before = ["655", "645"].map(g => rowsOf(g).length), after = ["655", "645"].map(g => j.games[g].rows.length);
+    if (before[0] !== after[0] || before[1] !== after[1]) {
+      const gs = ["655", "645"].filter((g, i) => after[i] !== before[i]);
+      DATA = j; renderTop(); setTab(S.tab); notifyTickets(gs);
+      toast("🎉 Có kết quả mới: " + gs.map(g => `${G[g].name} ${fmtDate(rowsOf(g)[0].d)} → ${rowsOf(g)[0].n.map(pad).join(" ")}${rowsOf(g)[0].b ? " + " + pad(rowsOf(g)[0].b) : ""}`).join(" | "));
+    }
+  } catch (e) {}
+}
+async function init() {
+  if (!(await pull(false))) {
+    if (window.LOTTO_DATA) DATA = window.LOTTO_DATA;
+    else { document.body.innerHTML = "<p style='padding:30px'>Không tải được dữ liệu. Hãy chạy <code>python3 server.py</code> rồi mở http://localhost:8000</p>"; return; }
+  }
+  $("#gp").onclick = e => { const b = e.target.closest("button"); if (b) setGame(b.dataset.g); };
+  $("#tabs").onclick = e => { const b = e.target.closest(".tab"); if (b) setTab(b.dataset.t); };
+  $("#range").onchange = e => { S.range = e.target.value; renderStats(); };
+  $("#sort").onchange = e => { S.sort = e.target.value; renderStats(); };
+  $("#modes").onclick = e => { const b = e.target.closest(".mode"); if (b) { S.mode = b.dataset.m; renderStats(); } };
+  $("#predM").onchange = e => { S.predM = e.target.value; renderPred(); };
+  document.addEventListener("click", async e => {
+    const c = e.target.closest(".copy[data-nums]");
+    if (c) { try { await navigator.clipboard.writeText(c.dataset.nums); toast("Đã copy: " + c.dataset.nums); } catch (_) { toast("Không copy được: " + c.dataset.nums, true); } }
+  });
+  // dò số
+  $("#nums").onclick = e => {
+    const b = e.target.closest("button"); if (!b) return; const n = +b.dataset.n, i = S.pick.indexOf(n);
+    if (i >= 0) S.pick.splice(i, 1); else if (S.pick.length < 6) S.pick.push(n); else toast("Đã đủ 6 số rồi – bấm số đã chọn để bỏ", true);
+    renderPick();
+  };
+  $("#rndBtn").onclick = () => { const mx = G[S.game].max, s = new Set(); while (s.size < 6) s.add(1 + Math.floor(Math.random() * mx)); S.pick = [...s]; renderPick(); };
+  $("#clrBtn").onclick = () => { S.pick = []; renderPick(); };
+  $("#applyBtn").onclick = () => { const p = parsePaste($("#paste").value); if (!p.length) return toast("Không đọc được số nào hợp lệ", true); S.pick = p; renderPick(); };
+  $("#addBtn").onclick = () => { const t = S.pick.slice().sort((a, b) => a - b); if (!S.tickets.some(x => x.join() === t.join())) S.tickets.push(t); store("tk" + S.game, S.tickets); S.pick = []; renderPick(); };
+  $("#goBtn").onclick = runCheck;
+  $("#favBtn").onclick = () => { if (S.pick.length !== 6) return toast("Chọn đủ 6 số để lưu", true); const k = "fav" + S.game, f = store(k) || [], t = S.pick.slice().sort((a, b) => a - b);
+    if (!f.some(x => x.join() === t.join())) f.push(t); store(k, f); toast("Đã lưu vào yêu thích"); renderPick(); };
+  $("#t-check").addEventListener("click", e => {
+    const d = e.target.closest("[data-deltk]"), f = e.target.closest("[data-fav]"), x = e.target.closest("[data-delfav]");
+    if (d) { S.tickets.splice(+d.dataset.deltk, 1); store("tk" + S.game, S.tickets); renderPick(); }
+    if (f) { S.pick = (store("fav" + S.game) || [])[+f.dataset.fav].slice(); renderPick(); }
+    if (x) { const k = "fav" + S.game, a = store(k) || []; a.splice(+x.dataset.delfav, 1); store(k, a); renderPick(); }
+  });
+  $("#t-cage").addEventListener("click", e => {
+    const m = e.target.closest("[data-m]"), c = e.target.closest("[data-cgchk]"), f = e.target.closest("[data-cgfav]"), cur = L.sets && L.sets.list;
+    if (m && !L.busy) { L.mode = m.dataset.m; L.sets = null; L.shown = 0; renderCage(); }
+    if (e.target.closest("#cgGo")) lcStart();
+    if (e.target.closest("#cgSnd")) { L.snd = !L.snd; store("lcSnd", L.snd); renderCage(); }
+    if (e.target.closest("#cgClear")) { store("lc" + S.game, []); renderCage(); }
+    if (c && cur) { S.pick = cur[+c.dataset.cgchk].n.slice(); setTab("check"); }
+    if (f && cur) { const k = "fav" + S.game, a = store(k) || [], t = cur[+f.dataset.cgfav].n.slice().sort((x, y) => x - y); if (!a.some(x => x.join() === t.join())) a.push(t); store(k, a); toast("Đã lưu vào yêu thích"); }
+  });
+  $("#cgDistinct").onchange = e => { L.distinct = e.target.checked; };
+  $("#fab").onclick = () => scrollTo({top: 0, behavior: "smooth"});
+  setGame("655"); setTab("stats"); setPill();
+  setInterval(renderLive, 1000);
+  if (serverMode) { $("#syncBtn").hidden = false; setInterval(() => pull(false), 20000); }
+  else if (location.protocol.startsWith("http")) setInterval(pullStatic, 60000);
+  $("#syncBtn").onclick = async e => { e.target.disabled = true; await pull(true); e.target.disabled = false; };
+}
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js").catch(() => {});
+init();
+</script>
+</body>
+</html>
