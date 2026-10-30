@@ -2,8 +2,13 @@ name: Cập nhật kết quả
 
 on:
   schedule:
-    - cron: "*/10 11-13 * * *"
-    - cron: "30 2,15 * * *"
+    # Giờ UTC (VN = UTC+7), chọn phút lẻ để tránh giờ cao điểm của GitHub. Bỏ thứ Hai (không có kỳ quay).
+    - cron: "47 10 * * 0,2-6"   # 17:47 VN - bắt đầu chờ
+    - cron: "27 11 * * 0,2-6"   # 18:27 VN
+    - cron: "57 11 * * 0,2-6"   # 18:57 VN
+    - cron: "37 12 * * 0,2-6"   # 19:37 VN
+    - cron: "17 13 * * 0,2-6"   # 20:17 VN
+    - cron: "41 2,15 * * *"     # 09:41 và 22:41 VN - kiểm tra bù
   workflow_dispatch:
 
 permissions:
@@ -16,13 +21,18 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
+    timeout-minutes: 160
     steps:
       - uses: actions/checkout@v4
-      - name: Lấy kết quả mới
-        run: python3 server.py --sync-once || true
-      - name: Lưu thay đổi (nếu có kỳ mới)
+      - name: Kiểm tra bản parse
+        if: hashFiles('tests/**') != ''
+        run: python3 -m unittest discover -s tests
+      - name: Lấy kết quả (chờ tới khi kỳ hôm nay có kết quả)
+        run: python3 server.py --watch
+      - name: Lưu thay đổi còn sót (nếu có)
+        if: always()
         run: |
           git config user.name "vietlott-bot"
           git config user.email "bot@users.noreply.github.com"
           git add -A
-          git diff --cached --quiet || (git commit -m "Cập nhật kết quả" && git push)
+          git diff --cached --quiet || (git commit -m "Cập nhật kết quả $(date -u +%F)" && git push origin HEAD)
