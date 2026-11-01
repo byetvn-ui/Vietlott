@@ -2,7 +2,7 @@ name: Cập nhật kết quả
 
 on:
   schedule:
-    - cron: "*/10 11-13 * * 0,2-6"
+    - cron: "*/5 11-14 * * 0,2-6"
     - cron: "30 2,15 * * *"
   workflow_dispatch:
 
