@@ -20,7 +20,7 @@ import threading
 import time
 import zipfile
 import xml.etree.ElementTree as ET
-from datetime import date, datetime, time as dtime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.request import Request, urlopen
 
@@ -37,25 +37,18 @@ except Exception:  # Windows thiếu tzdata, Python cũ...
 DRAW_HOUR = 18  # Vietlott quay lúc 18:00
 
 # weekday(): Thứ 2 = 0 ... Chủ nhật = 6
-def _src(env, kq, mn):
-    # nguồn chính (ketquadientoan) + nguồn dự phòng/đối chiếu (minhngoc)
-    return [("ketquadientoan", os.environ.get(env, kq), "kqdt"), ("minhngoc", mn, "mn")]
-
-
 GAMES = {
     "655": dict(
         name="Power 6/55", file="655.ods", maxn=55, main=6, bonus=True,
         days=(1, 3, 5),  # Thứ 3, 5, 7
-        sources=_src("VIETLOTT_URL_655",
-                     "https://www.ketquadientoan.com/tat-ca-ky-xo-so-power-655.html",
-                     "https://www.minhngoc.net.vn/ket-qua-xo-so/dien-toan-vietlott/power-6x55.html"),
+        url=os.environ.get("VIETLOTT_URL_655",
+                           "https://www.ketquadientoan.com/tat-ca-ky-xo-so-power-655.html"),
     ),
     "645": dict(
         name="Mega 6/45", file="645.ods", maxn=45, main=6, bonus=False,
         days=(2, 4, 6),  # Thứ 4, 6, Chủ nhật
-        sources=_src("VIETLOTT_URL_645",
-                     "https://www.ketquadientoan.com/tat-ca-ky-xo-so-mega-6-45.html",
-                     "https://www.minhngoc.net.vn/ket-qua-xo-so/dien-toan-vietlott/mega-6x45.html"),
+        url=os.environ.get("VIETLOTT_URL_645",
+                           "https://www.ketquadientoan.com/tat-ca-ky-xo-so-mega-6-45.html"),
     ),
 }
 WD = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"]
@@ -64,7 +57,6 @@ T_NS = "urn:oasis:names:tc:opendocument:xmlns:table:1.0"
 LOCK = threading.RLock()
 STATUS = {g: dict(last_check=None, last_ok=None, error=None, new_at=None, last_added=0) for g in GAMES}
 LAST_TRY = {g: 0.0 for g in GAMES}
-LAST_MANUAL = 0.0
 
 
 def now_vn():
@@ -109,15 +101,8 @@ def read_ods(g):
             n=ns[:cfg["main"]],
             b=ns[cfg["main"]] if cfg["bonus"] else None,
             j=texts[2] if len(texts) > 2 else "",
-            jv=jack_val(texts[2] if len(texts) > 2 else ""),
         ))
     return rows
-
-
-def jack_val(s):
-    """'≈ 188.8 Tỷ' -> 188.8 (để vẽ biểu đồ); không đọc được -> 0."""
-    m = re.search(r"(\d+(?:[.,]\d+)?)\s*Tỷ", s or "")
-    return float(m.group(1).replace(",", ".")) if m else 0.0
 
 
 def _esc(s):
@@ -178,52 +163,6 @@ def prepend_ods(g, row):
     os.replace(tmp, path)
 
 
-def update_ods_jackpot(g, iso_date, jack):
-    """Điền/sửa ô jackpot (cột 3) của kỳ `iso_date` đã có trong .ods. True nếu đã sửa."""
-    path = ods_path(g)
-    d = date.fromisoformat(iso_date)
-    needle = d.strftime("%d/%m/%Y")
-    with zipfile.ZipFile(path) as zin:
-        content = zin.read("content.xml").decode("utf-8")
-        for m in re.finditer(r"<table:table-row\b.*?</table:table-row>", content, re.S):
-            row = m.group(0)
-            ps = list(re.finditer(r"<text:p>.*?</text:p>", row, re.S))
-            if len(ps) != 3 or needle not in re.sub(r"<[^>]+>", "", ps[0].group(0)):
-                continue
-            if re.sub(r"<[^>]+>", "", ps[2].group(0)).strip() == jack:
-                return False
-            new_row = row[:ps[2].start()] + "<text:p>%s</text:p>" % _esc(jack) + row[ps[2].end():]
-            new_content = content[:m.start()] + new_row + content[m.end():]
-            fd, tmp = tempfile.mkstemp(suffix=".ods", dir=DATA_DIR)
-            os.close(fd)
-            try:
-                with zipfile.ZipFile(tmp, "w") as zout:
-                    for item in zin.infolist():
-                        data = new_content.encode("utf-8") if item.filename == "content.xml" else zin.read(item.filename)
-                        zout.writestr(item, data, compress_type=item.compress_type)
-            except Exception:
-                os.remove(tmp)
-                raise
-            zin.close()
-            os.replace(tmp, path)
-            return True
-    return False
-
-
-def backfill_jackpots(g, res):
-    """Kết quả thường có trước, tiền jackpot các trang nguồn cập nhật chậm hơn:
-    điền bổ sung jackpot cho vài kỳ gần nhất đang để trống."""
-    fixed = 0
-    for r in read_ods(g)[:5]:
-        if r["j"]:
-            continue
-        j = next((s[r["d"]]["j"] for s in res.values() if r["d"] in s and s[r["d"]].get("j")), "")
-        if j and update_ods_jackpot(g, r["d"], j):
-            fixed += 1
-            log("%s: điền jackpot kỳ %s = %s" % (GAMES[g]["name"], r["d"], j))
-    return fixed
-
-
 # ───────────────────────── Lấy dữ liệu từ web ─────────────────────────
 
 ROW_RE = re.compile(
@@ -267,46 +206,8 @@ def parse_source(html_text, g):
     return out
 
 
-MN_DATE = re.compile(r"Ngày quay thưởng\s*(\d{2})/(\d{2})/(\d{4})")
-
-
-def jack_fmt(v):
-    v = round(v / 1e9, 1)
-    return "≈ %s Tỷ" % (("%d" % v) if v == int(v) else ("%.1f" % v))
-
-
-def parse_minhngoc(html_text, g):
-    """Bóc các kỳ quay từ minhngoc.net.vn (nguồn dự phòng)."""
-    cfg = GAMES[g]
-    need = cfg["main"] + (1 if cfg["bonus"] else 0)
-    t = re.sub(r"(?is)<(script|style)\b.*?</\1>", " ", html_text)
-    t = re.sub(r"<[^>]+>", " ", t)
-    t = htmllib.unescape(t).replace("\xa0", " ")
-    num_re = re.compile(r"(?<![\d/.,#])((?:\d{2}\s+){%d}\d{2})(?![\d/.,])" % (need - 1))
-    ms = list(MN_DATE.finditer(t))
-    out, seen = [], set()
-    for i, m in enumerate(ms):
-        iso = "%s-%s-%s" % (m.group(3), m.group(2), m.group(1))
-        seg = t[m.end(): ms[i + 1].start() if i + 1 < len(ms) else len(t)]
-        nm = num_re.search(seg[:500])
-        if iso in seen or not nm:
-            continue
-        ns = [int(x) for x in nm.group(1).split()]
-        main = ns[:cfg["main"]]
-        if len(set(main)) != cfg["main"] or any(not 1 <= x <= cfg["maxn"] for x in ns):
-            continue
-        jm = re.search(r"Jackpot(?:\s*1)?\b.{0,60}?(\d{1,3}(?:[.,]\d{3}){2,})", seg[nm.end():], re.S)
-        jack = jack_fmt(int(re.sub(r"\D", "", jm.group(1)))) if jm else ""
-        seen.add(iso)
-        out.append(dict(d=iso, n=main, b=ns[cfg["main"]] if cfg["bonus"] else None, j=jack))
-    return out
-
-
-PARSERS = {"kqdt": parse_source, "mn": parse_minhngoc}
-
-
-def fetch_url(url):
-    req = Request(url, headers={
+def fetch_source(g):
+    req = Request(GAMES[g]["url"], headers={
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml",
         "Accept-Language": "vi,en;q=0.8",
@@ -316,25 +217,8 @@ def fetch_url(url):
     return raw.decode("utf-8", errors="replace")
 
 
-def gather(g):
-    """Lấy tất cả nguồn. Trả về ({tên_nguồn: {ngày: kỳ}}, [lỗi])."""
-    res, errs = {}, []
-    for name, url, pk in GAMES[g]["sources"]:
-        try:
-            rows = PARSERS[pk](fetch_url(url), g)
-            if rows:
-                res[name] = {r["d"]: r for r in rows}
-            else:
-                errs.append("%s: không đọc được kết quả nào (trang có thể đã đổi cấu trúc)" % name)
-        except Exception as e:  # noqa
-            errs.append("%s: %s: %s" % (name, type(e).__name__, e))
-    return res, errs
-
-
 def sync(g):
-    """Lấy từ nhiều nguồn, đối chiếu chéo rồi mới ghi kỳ mới vào .ods. Trả về số kỳ đã thêm.
-    Ghi ngay khi >=2 nguồn khớp nhau; nếu mới có 1 nguồn thì chờ 45 phút sau giờ quay rồi mới tin.
-    Nếu các nguồn lệch nhau thì KHÔNG ghi và báo lỗi."""
+    """Kiểm tra nguồn, ghi các kỳ mới vào file .ods. Trả về số kỳ đã thêm."""
     with LOCK:
         st = STATUS[g]
         LAST_TRY[g] = time.time()
@@ -343,46 +227,24 @@ def sync(g):
             local = read_ods(g)
             latest = local[0]["d"] if local else "0000-00-00"
             known = {r["d"] for r in local}
-            res, errs = gather(g)
-            if not res:
-                raise RuntimeError("Tất cả nguồn đều lỗi: " + "; ".join(errs))
-            for e in errs:
-                log("%s: nguồn phụ lỗi - %s" % (GAMES[g]["name"], e))
-            now = now_vn()
-            today = now.date().isoformat()
-            cands = sorted({d for s in res.values() for d in s if d > latest and d not in known and d <= today})
-            added, problem = 0, None
-            for d in cands:  # cũ → mới, để kỳ mới nhất nằm trên cùng
-                vs = [s[d] for s in res.values() if d in s]
-                if len({(tuple(v["n"]), v["b"]) for v in vs}) > 1:
-                    problem = "Các nguồn lệch nhau ở kỳ %s - tạm không ghi" % d
-                    break
-                row = dict(vs[0])
-                row["j"] = next((v["j"] for v in vs if v["j"]), "")
-                due = datetime.combine(date.fromisoformat(d), dtime(DRAW_HOUR, 0), tzinfo=VN) + timedelta(minutes=45)
-                if len(vs) < 2 and now < due:
-                    log("%s: kỳ %s mới có 1 nguồn, chờ nguồn thứ 2 xác nhận" % (GAMES[g]["name"], d))
-                    break
-                if len(vs) < 2:
-                    log("%s: cảnh báo - kỳ %s chỉ có 1 nguồn xác nhận" % (GAMES[g]["name"], d))
-                prepend_ods(g, row)
-                added += 1
-                log("%s: thêm kỳ %s  %s%s  %s  (%d nguồn)" % (
-                    GAMES[g]["name"], row["d"], " ".join("%02d" % x for x in row["n"]),
-                    (" + %02d" % row["b"]) if row["b"] else "", row["j"], len(vs)))
-            fixed = backfill_jackpots(g, res)
-            if problem:
-                if fixed:
-                    build_data()
-                raise RuntimeError(problem)
+            remote = parse_source(fetch_source(g), g)
+            if not remote:
+                raise RuntimeError("Không đọc được kết quả nào từ trang nguồn (có thể trang đã đổi cấu trúc)")
+            today = now_vn().date().isoformat()
+            new = sorted((r for r in remote if r["d"] > latest and r["d"] not in known and r["d"] <= today),
+                         key=lambda r: r["d"])
+            for r in new:  # cũ → mới, để kỳ mới nhất nằm trên cùng
+                prepend_ods(g, r)
+                log("%s: thêm kỳ %s  %s%s  %s" % (
+                    GAMES[g]["name"], r["d"], " ".join("%02d" % x for x in r["n"]),
+                    (" + %02d" % r["b"]) if r["b"] else "", r["j"]))
             st["error"] = None
             st["last_ok"] = st["last_check"]
-            st["last_added"] = added
-            if added:
+            st["last_added"] = len(new)
+            if new:
                 st["new_at"] = st["last_check"]
-            if added or fixed:
                 build_data()
-            return added
+            return len(new)
         except Exception as e:  # noqa
             st["error"] = "%s: %s" % (type(e).__name__, e)
             log("%s: LỖI %s" % (GAMES[g]["name"], st["error"]))
@@ -408,24 +270,12 @@ def load_games():
 
 
 def build_data():
-    """Tạo data.js. Chỉ ghi lại file khi dữ liệu kỳ quay thật sự thay đổi
-    (tránh bot commit + dựng lại web liên tục chỉ vì dấu thời gian)."""
     with LOCK:
-        games = load_games()
-        path = os.path.join(BASE, "data.js")
-        try:
-            with open(path, encoding="utf-8") as f:
-                old = json.loads(f.read().strip()[len("window.LOTTO_DATA="):].rstrip(";"))
-            if old.get("games") == games:
-                return False
-        except Exception:  # noqa  (chưa có file / file hỏng -> ghi mới)
-            pass
-        data = dict(games=games, generated=now_vn().isoformat(timespec="seconds"))
+        data = dict(games=load_games(), generated=now_vn().isoformat(timespec="seconds"))
         tmp = os.path.join(BASE, "data.js.tmp")
         with open(tmp, "w", encoding="utf-8") as f:
             f.write("window.LOTTO_DATA=" + json.dumps(data, ensure_ascii=False, separators=(",", ":")) + ";\n")
-        os.replace(tmp, path)
-        return True
+        os.replace(tmp, os.path.join(BASE, "data.js"))
 
 
 def api_payload():
@@ -487,13 +337,8 @@ class Handler(BaseHTTPRequestHandler):
         self._send(404, b"not found", "text/plain")
 
     def do_POST(self):
-        global LAST_MANUAL
         if self.path.split("?")[0] == "/api/sync":
-            if time.time() - LAST_MANUAL < 20:  # chống bấm/gọi dồn dập
-                added = {g: 0 for g in GAMES}
-            else:
-                LAST_MANUAL = time.time()
-                added = {g: sync(g) for g in GAMES}
+            added = {g: sync(g) for g in GAMES}
             body = dict(added=added, **api_payload())
             return self._send(200, json.dumps(body, ensure_ascii=False).encode(), "application/json; charset=utf-8")
         self._send(404, b"not found", "text/plain")
