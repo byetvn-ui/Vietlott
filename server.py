@@ -5,7 +5,6 @@ Vietlott 6/45 & 6/55 - server tự động cập nhật kết quả.
   python3 server.py                -> chạy web (http://localhost:8000) + tự cập nhật
   python3 server.py --sync-once    -> kiểm tra & cập nhật 1 lần rồi thoát (dùng cho cron / Task Scheduler)
   python3 server.py --build        -> chỉ tạo lại data.js từ 2 file .ods
-  python3 server.py --watch        -> (GitHub Actions) chờ và ghi kết quả kỳ quay hôm nay ngay khi có
 
 Chỉ dùng thư viện chuẩn của Python (>= 3.8), không cần cài thêm gì.
 """
@@ -15,7 +14,6 @@ import json
 import os
 import re
 import shutil
-import subprocess
 import sys
 import tempfile
 import threading
@@ -180,6 +178,52 @@ def prepend_ods(g, row):
     os.replace(tmp, path)
 
 
+def update_ods_jackpot(g, iso_date, jack):
+    """Điền/sửa ô jackpot (cột 3) của kỳ `iso_date` đã có trong .ods. True nếu đã sửa."""
+    path = ods_path(g)
+    d = date.fromisoformat(iso_date)
+    needle = d.strftime("%d/%m/%Y")
+    with zipfile.ZipFile(path) as zin:
+        content = zin.read("content.xml").decode("utf-8")
+        for m in re.finditer(r"<table:table-row\b.*?</table:table-row>", content, re.S):
+            row = m.group(0)
+            ps = list(re.finditer(r"<text:p>.*?</text:p>", row, re.S))
+            if len(ps) != 3 or needle not in re.sub(r"<[^>]+>", "", ps[0].group(0)):
+                continue
+            if re.sub(r"<[^>]+>", "", ps[2].group(0)).strip() == jack:
+                return False
+            new_row = row[:ps[2].start()] + "<text:p>%s</text:p>" % _esc(jack) + row[ps[2].end():]
+            new_content = content[:m.start()] + new_row + content[m.end():]
+            fd, tmp = tempfile.mkstemp(suffix=".ods", dir=DATA_DIR)
+            os.close(fd)
+            try:
+                with zipfile.ZipFile(tmp, "w") as zout:
+                    for item in zin.infolist():
+                        data = new_content.encode("utf-8") if item.filename == "content.xml" else zin.read(item.filename)
+                        zout.writestr(item, data, compress_type=item.compress_type)
+            except Exception:
+                os.remove(tmp)
+                raise
+            zin.close()
+            os.replace(tmp, path)
+            return True
+    return False
+
+
+def backfill_jackpots(g, res):
+    """Kết quả thường có trước, tiền jackpot các trang nguồn cập nhật chậm hơn:
+    điền bổ sung jackpot cho vài kỳ gần nhất đang để trống."""
+    fixed = 0
+    for r in read_ods(g)[:5]:
+        if r["j"]:
+            continue
+        j = next((s[r["d"]]["j"] for s in res.values() if r["d"] in s and s[r["d"]].get("j")), "")
+        if j and update_ods_jackpot(g, r["d"], j):
+            fixed += 1
+            log("%s: điền jackpot kỳ %s = %s" % (GAMES[g]["name"], r["d"], j))
+    return fixed
+
+
 # ───────────────────────── Lấy dữ liệu từ web ─────────────────────────
 
 ROW_RE = re.compile(
@@ -267,7 +311,7 @@ def fetch_url(url):
         "Accept": "text/html,application/xhtml+xml",
         "Accept-Language": "vi,en;q=0.8",
     })
-    with urlopen(req, timeout=15) as r:
+    with urlopen(req, timeout=30) as r:
         raw = r.read()
     return raw.decode("utf-8", errors="replace")
 
@@ -310,11 +354,10 @@ def sync(g):
             added, problem = 0, None
             for d in cands:  # cũ → mới, để kỳ mới nhất nằm trên cùng
                 vs = [s[d] for s in res.values() if d in s]
-                if len({(tuple(sorted(v["n"])), v["b"]) for v in vs}) > 1:
+                if len({(tuple(v["n"]), v["b"]) for v in vs}) > 1:
                     problem = "Các nguồn lệch nhau ở kỳ %s - tạm không ghi" % d
                     break
                 row = dict(vs[0])
-                row["n"] = sorted(row["n"])
                 row["j"] = next((v["j"] for v in vs if v["j"]), "")
                 due = datetime.combine(date.fromisoformat(d), dtime(DRAW_HOUR, 0), tzinfo=VN) + timedelta(minutes=45)
                 if len(vs) < 2 and now < due:
@@ -327,13 +370,17 @@ def sync(g):
                 log("%s: thêm kỳ %s  %s%s  %s  (%d nguồn)" % (
                     GAMES[g]["name"], row["d"], " ".join("%02d" % x for x in row["n"]),
                     (" + %02d" % row["b"]) if row["b"] else "", row["j"], len(vs)))
+            fixed = backfill_jackpots(g, res)
             if problem:
+                if fixed:
+                    build_data()
                 raise RuntimeError(problem)
             st["error"] = None
             st["last_ok"] = st["last_check"]
             st["last_added"] = added
             if added:
                 st["new_at"] = st["last_check"]
+            if added or fixed:
                 build_data()
             return added
         except Exception as e:  # noqa
@@ -361,17 +408,17 @@ def load_games():
 
 
 def build_data():
-    """Tạo data.js. Chỉ ghi lại khi dữ liệu thật sự đổi (tránh commit vô ích sau mỗi lần chạy)."""
+    """Tạo data.js. Chỉ ghi lại file khi dữ liệu kỳ quay thật sự thay đổi
+    (tránh bot commit + dựng lại web liên tục chỉ vì dấu thời gian)."""
     with LOCK:
         games = load_games()
         path = os.path.join(BASE, "data.js")
         try:
             with open(path, encoding="utf-8") as f:
-                old = f.read()
-            old_games = json.loads(old[old.index("=") + 1:].rstrip().rstrip(";"))["games"]
-            if old_games == json.loads(json.dumps(games)):
+                old = json.loads(f.read().strip()[len("window.LOTTO_DATA="):].rstrip(";"))
+            if old.get("games") == games:
                 return False
-        except Exception:  # noqa  (chưa có file hoặc file hỏng -> tạo mới)
+        except Exception:  # noqa  (chưa có file / file hỏng -> ghi mới)
             pass
         data = dict(games=games, generated=now_vn().isoformat(timespec="seconds"))
         tmp = os.path.join(BASE, "data.js.tmp")
@@ -387,60 +434,6 @@ def api_payload():
 
 
 # ───────────────────────── Lịch tự động ─────────────────────────
-
-def pending(now=None):
-    """Các game có kỳ quay HÔM NAY mà chưa có trong file .ods (chỉ tính tới 23:00)."""
-    now = now or now_vn()
-    today = now.date().isoformat()
-    out = []
-    for g, cfg in GAMES.items():
-        rows = read_ods(g)
-        if now.weekday() in cfg["days"] and now.hour < 23 and (not rows or rows[0]["d"] < today):
-            out.append(g)
-    return out
-
-
-def git_publish(msg):
-    """Chỉ chạy trong GitHub Actions: commit + push ngay khi có thay đổi (không chờ hết lượt chạy)."""
-    if not os.environ.get("GITHUB_ACTIONS"):
-        return
-    def run(*a):
-        return subprocess.run(a, cwd=BASE, capture_output=True, text=True)
-    run("git", "config", "user.name", "vietlott-bot")
-    run("git", "config", "user.email", "bot@users.noreply.github.com")
-    run("git", "add", "-A")
-    if run("git", "diff", "--cached", "--quiet").returncode == 0:
-        return
-    run("git", "commit", "-m", msg)
-    if run("git", "push", "origin", "HEAD").returncode != 0:
-        run("git", "pull", "--rebase", "-q", "origin", "main")
-        r = run("git", "push", "origin", "HEAD")
-        if r.returncode != 0:
-            log("git push lỗi: " + r.stderr.strip()[:200])
-
-
-def watch(max_minutes=140, interval=90):
-    """Đồng bộ 1 lần (bù kỳ cũ); nếu hôm nay có kỳ quay chưa ghi thì cứ vài chục giây hỏi lại
-    cho tới khi có. Chạy 1 lần dài thay vì trông chờ nhiều lần chạy theo lịch (GitHub hay trễ/bỏ lượt)."""
-    t0 = time.time()
-    for g in GAMES:
-        sync(g)
-    build_data()
-    git_publish("Cập nhật kết quả")
-    while True:
-        p = pending()
-        if not p:
-            log("không còn kỳ nào đang chờ")
-            return 0
-        if time.time() - t0 > max_minutes * 60:
-            log("hết %s phút mà vẫn chưa có kết quả: %s" % (max_minutes, ", ".join(GAMES[g]["name"] for g in p)))
-            return 1
-        time.sleep(interval)
-        for g in p:
-            sync(g)
-        build_data()
-        git_publish("Cập nhật kết quả")
-
 
 def scheduler():
     while True:
@@ -515,15 +508,12 @@ def main():
     ap.add_argument("--port", type=int, default=8000)
     ap.add_argument("--sync-once", action="store_true")
     ap.add_argument("--build", action="store_true")
-    ap.add_argument("--watch", action="store_true", help="GitHub Actions: chờ tới khi có kết quả kỳ hôm nay")
     a = ap.parse_args()
 
     if a.build:
         build_data()
         print("Đã tạo data.js")
         return
-    if a.watch:
-        sys.exit(watch())
     if a.sync_once:
         n = {g: sync(g) for g in GAMES}
         build_data()
