@@ -42,7 +42,20 @@ def _src(env, kq, mn):
     return [("ketquadientoan", os.environ.get(env, kq), "kqdt"), ("minhngoc", mn, "mn")]
 
 
+def _kq535_url():
+    """Trang 'tất cả kỳ' có lọc theo ngày: lấy 12 ngày gần nhất (đủ cho vài kỳ bị lỡ)."""
+    t = now_vn().date()
+    return "https://www.ketquadientoan.com/tat-ca-ky-xo-so-lotto-535.html?datef=%s&datet=%s" % (
+        (t - timedelta(days=12)).strftime("%d-%m-%Y"), (t + timedelta(days=1)).strftime("%d-%m-%Y"))
+
+
 GAMES = {
+    "535": dict(
+        name="Lotto 5/35", file="535.ods", maxn=35, main=5, bonus=True, bmax=12,  # 5 số + 1 số đặc biệt (1-12)
+        days=tuple(range(7)), hours=(13, 21),  # quay mỗi ngày, 2 kỳ: 13h và 21h
+        sources=[("ketquadientoan", _kq535_url, "kq535"),
+                 ("minhchinh", "https://www.minhchinh.com/truc-tiep-xo-so-tu-chon-lotto-535.html", "mc535")],
+    ),
     "655": dict(
         name="Power 6/55", file="655.ods", maxn=55, main=6, bonus=True,
         days=(1, 3, 5),  # Thứ 3, 5, 7
@@ -65,6 +78,24 @@ LOCK = threading.RLock()
 STATUS = {g: dict(last_check=None, last_ok=None, error=None, new_at=None, last_added=0) for g in GAMES}
 LAST_TRY = {g: 0.0 for g in GAMES}
 LAST_MANUAL = 0.0
+
+
+def hrs(g):
+    return GAMES[g].get("hours", (DRAW_HOUR,))
+
+
+def multi(g):
+    """Game có nhiều kỳ/ngày (Lotto 5/35)."""
+    return len(hrs(g)) > 1
+
+
+def rowkey(g, r):
+    """Khóa của một kỳ: ngày (game 1 kỳ/ngày) hoặc ngày+giờ (game nhiều kỳ/ngày). Sắp xếp chuỗi = theo thời gian."""
+    return r["d"] + ("T%02d" % r["h"] if multi(g) else "")
+
+
+def draw_dt(g, iso, h=None):
+    return datetime.combine(date.fromisoformat(iso), dtime(h if h is not None else hrs(g)[0]), tzinfo=VN)
 
 
 def now_vn():
@@ -104,13 +135,19 @@ def read_ods(g):
         if not m or len(ns) != need:
             continue
         ns = [int(x) for x in ns]
-        rows.append(dict(
+        row = dict(
             d="%s-%s-%s" % (m.group(3), m.group(2), m.group(1)),
             n=ns[:cfg["main"]],
             b=ns[cfg["main"]] if cfg["bonus"] else None,
             j=texts[2] if len(texts) > 2 else "",
             jv=jack_val(texts[2] if len(texts) > 2 else ""),
-        ))
+        )
+        if multi(g):
+            hm = re.match(r"\s*(\d{1,2})\s*H\b", texts[0], re.I)
+            if not hm:
+                continue
+            row["h"] = int(hm.group(1))
+        rows.append(row)
     return rows
 
 
@@ -144,6 +181,8 @@ def prepend_ods(g, row):
 
         d = date.fromisoformat(row["d"])
         label = "%s, %s" % (WD[d.weekday()], d.strftime("%d/%m/%Y"))
+        if multi(g):
+            label = "%02dH - %s" % (row["h"], label)
 
         num_tmpl = ps[1].group(0)
         sep = re.search(r'<text:span text:style-name="([^"]+)"> </text:span>', num_tmpl)
@@ -178,7 +217,7 @@ def prepend_ods(g, row):
     os.replace(tmp, path)
 
 
-def update_ods_jackpot(g, iso_date, jack):
+def update_ods_jackpot(g, iso_date, jack, h=None):
     """Điền/sửa ô jackpot (cột 3) của kỳ `iso_date` đã có trong .ods. True nếu đã sửa."""
     path = ods_path(g)
     d = date.fromisoformat(iso_date)
@@ -188,7 +227,10 @@ def update_ods_jackpot(g, iso_date, jack):
         for m in re.finditer(r"<table:table-row\b.*?</table:table-row>", content, re.S):
             row = m.group(0)
             ps = list(re.finditer(r"<text:p>.*?</text:p>", row, re.S))
-            if len(ps) != 3 or needle not in re.sub(r"<[^>]+>", "", ps[0].group(0)):
+            label = re.sub(r"<[^>]+>", "", ps[0].group(0))
+            if len(ps) != 3 or needle not in label:
+                continue
+            if h is not None and not re.match(r"\s*0*%d\s*H\b" % h, label, re.I):
                 continue
             if re.sub(r"<[^>]+>", "", ps[2].group(0)).strip() == jack:
                 return False
@@ -214,13 +256,14 @@ def backfill_jackpots(g, res):
     """Kết quả thường có trước, tiền jackpot các trang nguồn cập nhật chậm hơn:
     điền bổ sung jackpot cho vài kỳ gần nhất đang để trống."""
     fixed = 0
-    for r in read_ods(g)[:5]:
+    for r in read_ods(g)[:(8 if multi(g) else 5)]:
         if r["j"]:
             continue
-        j = next((s[r["d"]]["j"] for s in res.values() if r["d"] in s and s[r["d"]].get("j")), "")
-        if j and update_ods_jackpot(g, r["d"], j):
+        k = rowkey(g, r)
+        j = next((s[k]["j"] for s in res.values() if k in s and s[k].get("j")), "")
+        if j and update_ods_jackpot(g, r["d"], j, r.get("h")):
             fixed += 1
-            log("%s: điền jackpot kỳ %s = %s" % (GAMES[g]["name"], r["d"], j))
+            log("%s: điền jackpot kỳ %s = %s" % (GAMES[g]["name"], k, j))
     return fixed
 
 
@@ -302,7 +345,74 @@ def parse_minhngoc(html_text, g):
     return out
 
 
-PARSERS = {"kqdt": parse_source, "mn": parse_minhngoc}
+KQ535_ROW = re.compile(
+    r"(\d{1,2})\s*H\s*-\s*(?:T[2-7]|CN)\s*,\s*(\d{2})/(\d{2})/(\d{4})\s+((?:\d{2}\s+){5}\d{2})(?![\d.,])\s*(\d{1,3}(?:[.,]\d{3}){2,})?\s*(?:≈\s*([\d.,]+)\s*Tỷ)?", re.I)
+MC535_ROW = re.compile(r"(\d{2})/(\d{2})/(\d{2})\s+(\d{1,2})h\s+(\d{10})\s+(\d{2})\s+(\d{1,3}(?:,\d{3}){2,})", re.I)
+MC535_TOP = re.compile(r"ngày\s*(\d{2})/(\d{2})/(\d{4})\s*-\s*Lúc\s*(\d{1,2}):\d{2}\s+((?:\d{2}\s+){5}\d{2})\s*Giá trị Độc Đắc\s*(\d{1,3}(?:,\d{3}){2,})", re.I)
+
+
+def _text_of(html_text):
+    t = re.sub(r"(?is)<(script|style)\b.*?</\1>", " ", html_text)
+    t = re.sub(r"<[^>]+>", " ", t)
+    return htmllib.unescape(t).replace("\xa0", " ")
+
+
+def _row535(iso, h, nums, jack):
+    """Kiểm tra hợp lệ rồi tạo dict kỳ 5/35 (5 số 1-35 khác nhau + số đặc biệt 1-12)."""
+    cfg = GAMES["535"]
+    main, b = nums[:cfg["main"]], nums[cfg["main"]]
+    if h not in cfg["hours"] or len(set(main)) != cfg["main"] or any(not 1 <= x <= cfg["maxn"] for x in main) or not 1 <= b <= cfg["bmax"]:
+        return None
+    try:
+        date.fromisoformat(iso)
+    except ValueError:
+        return None
+    return dict(d=iso, h=h, n=main, b=b, j=jack)
+
+
+def parse_kq535(html_text, g="535"):
+    """ketquadientoan.com – trang 'Tất cả kỳ Lotto 5/35': '21H - T3, 03/11/2026 12 25 26 33 35 06 12.275.236.000≈ 12.3 Tỷ'."""
+    out, seen = [], set()
+    for m in KQ535_ROW.finditer(_text_of(html_text)):
+        h = int(m.group(1))
+        iso = "%s-%s-%s" % (m.group(4), m.group(3), m.group(2))
+        if (iso, h) in seen:
+            continue
+        if m.group(7):
+            jack = "≈ %s Tỷ" % m.group(7).replace(",", ".")
+        elif m.group(6):
+            jack = jack_fmt(int(re.sub(r"\D", "", m.group(6))))
+        else:
+            jack = ""
+        r = _row535(iso, h, [int(x) for x in m.group(5).split()], jack)
+        if r:
+            seen.add((iso, h))
+            out.append(r)
+    return out
+
+
+def parse_mc535(html_text, g="535"):
+    """minhchinh.com – trang trực tiếp Lotto 5/35 (bảng 15 kỳ gần nhất + khối kết quả đang hiển thị)."""
+    t = _text_of(html_text)
+    out, seen = [], set()
+
+    def add(iso, h, nums, big):
+        if (iso, h) in seen:
+            return
+        r = _row535(iso, h, nums, jack_fmt(int(big.replace(",", ""))))
+        if r:
+            seen.add((iso, h))
+            out.append(r)
+    for m in MC535_TOP.finditer(t):
+        add("%s-%s-%s" % (m.group(3), m.group(2), m.group(1)), int(m.group(4)), [int(x) for x in m.group(5).split()], m.group(6))
+    for m in MC535_ROW.finditer(t):
+        d5 = m.group(5)
+        add("20%s-%s-%s" % (m.group(3), m.group(2), m.group(1)), int(m.group(4)),
+            [int(d5[i:i + 2]) for i in range(0, 10, 2)] + [int(m.group(6))], m.group(7))
+    return out
+
+
+PARSERS = {"kqdt": parse_source, "mn": parse_minhngoc, "kq535": parse_kq535, "mc535": parse_mc535}
 
 
 def fetch_url(url):
@@ -321,9 +431,9 @@ def gather(g):
     res, errs = {}, []
     for name, url, pk in GAMES[g]["sources"]:
         try:
-            rows = PARSERS[pk](fetch_url(url), g)
+            rows = PARSERS[pk](fetch_url(url() if callable(url) else url), g)
             if rows:
-                res[name] = {r["d"]: r for r in rows}
+                res[name] = {rowkey(g, r): r for r in rows}
             else:
                 errs.append("%s: không đọc được kết quả nào (trang có thể đã đổi cấu trúc)" % name)
         except Exception as e:  # noqa
@@ -341,16 +451,21 @@ def sync(g):
         st["last_check"] = now_vn().isoformat(timespec="seconds")
         try:
             local = read_ods(g)
-            latest = local[0]["d"] if local else "0000-00-00"
-            known = {r["d"] for r in local}
+            latest = rowkey(g, local[0]) if local else ""
+            known = {rowkey(g, r) for r in local}
             res, errs = gather(g)
             if not res:
                 raise RuntimeError("Tất cả nguồn đều lỗi: " + "; ".join(errs))
             for e in errs:
                 log("%s: nguồn phụ lỗi - %s" % (GAMES[g]["name"], e))
             now = now_vn()
-            today = now.date().isoformat()
-            cands = sorted({d for s in res.values() for d in s if d > latest and d not in known and d <= today})
+            allrows = {}
+            for s_ in res.values():
+                for k_, r_ in s_.items():
+                    allrows.setdefault(k_, r_)
+            # chỉ nhận kỳ đã tới giờ quay (chặn dữ liệu lạ/sai ngày)
+            cands = sorted(k for k, r_ in allrows.items()
+                           if k > latest and k not in known and draw_dt(g, r_["d"], r_.get("h")) <= now)
             added, problem = 0, None
             for d in cands:  # cũ → mới, để kỳ mới nhất nằm trên cùng
                 vs = [s[d] for s in res.values() if d in s]
@@ -359,7 +474,7 @@ def sync(g):
                     break
                 row = dict(vs[0])
                 row["j"] = next((v["j"] for v in vs if v["j"]), "")
-                due = datetime.combine(date.fromisoformat(d), dtime(DRAW_HOUR, 0), tzinfo=VN) + timedelta(minutes=45)
+                due = draw_dt(g, row["d"], row.get("h")) + timedelta(minutes=45)
                 if len(vs) < 2 and now < due:
                     log("%s: kỳ %s mới có 1 nguồn, chờ nguồn thứ 2 xác nhận" % (GAMES[g]["name"], d))
                     break
@@ -368,7 +483,7 @@ def sync(g):
                 prepend_ods(g, row)
                 added += 1
                 log("%s: thêm kỳ %s  %s%s  %s  (%d nguồn)" % (
-                    GAMES[g]["name"], row["d"], " ".join("%02d" % x for x in row["n"]),
+                    GAMES[g]["name"], d, " ".join("%02d" % x for x in row["n"]),
                     (" + %02d" % row["b"]) if row["b"] else "", row["j"], len(vs)))
             fixed = backfill_jackpots(g, res)
             if problem:
@@ -403,7 +518,8 @@ def load_games():
         if not c or c[0] != mt:
             c = (mt, read_ods(g))
             _cache[g] = c
-        out[g] = dict(name=cfg["name"], max=cfg["maxn"], bonus=cfg["bonus"], days=list(cfg["days"]), rows=c[1])
+        out[g] = dict(name=cfg["name"], max=cfg["maxn"], bonus=cfg["bonus"], days=list(cfg["days"]), k=cfg["main"],
+                      bmax=cfg.get("bmax", cfg["maxn"]), hours=list(hrs(g)), rows=c[1])
     return out
 
 
@@ -440,14 +556,18 @@ def scheduler():
         try:
             now = now_vn()
             today = now.date().isoformat()
-            t18 = now.replace(hour=DRAW_HOUR, minute=0, second=0, microsecond=0)
             for g, cfg in GAMES.items():
                 rows = read_ods(g)
-                latest = rows[0]["d"] if rows else ""
-                waiting = now.weekday() in cfg["days"] and now >= t18 and latest < today
+                latest = rowkey(g, rows[0]) if rows else ""
+                # các kỳ của hôm nay đã tới giờ quay
+                due = [h for h in hrs(g) if now.weekday() in cfg["days"] and now >= now.replace(hour=h, minute=0, second=0, microsecond=0)]
+                last_due = max(due) if due else None
+                want = (today + ("T%02d" % last_due if multi(g) else "")) if due else ""
+                waiting = bool(due) and latest < want
                 if waiting:
-                    # sau 18h ngày quay: hỏi mỗi 60s trong 2 giờ đầu, sau đó mỗi 10 phút
-                    interval = 60 if now < t18 + timedelta(hours=2) else 600
+                    # sau giờ quay: hỏi mỗi 60s trong 2 giờ đầu, sau đó mỗi 10 phút
+                    t0 = now.replace(hour=last_due, minute=0, second=0, microsecond=0)
+                    interval = 60 if now < t0 + timedelta(hours=2) else 600
                 else:
                     interval = 6 * 3600  # các lúc khác: kiểm tra bù mỗi 6 tiếng
                 if time.time() - LAST_TRY[g] >= interval:
