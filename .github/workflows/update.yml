@@ -2,7 +2,9 @@ name: Cập nhật kết quả
 
 on:
   schedule:
-    - cron: "*/5 11-14 * * 0,2-6"
+    # 13:00-14:59 và 18:00-22:59 giờ VN (= 06-07 và 11-15 UTC), mỗi 5 phút, mọi ngày (5/35 quay cả Thứ Hai)
+    - cron: "*/5 6-7,11-15 * * *"
+    # kiểm tra bù 2 lần mỗi ngày
     - cron: "30 2,15 * * *"
   workflow_dispatch:
 
