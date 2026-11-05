@@ -461,18 +461,29 @@ function predSets(g, rows, N = getN()) {
   return {pos: d.pos, hot: d.hot, cold: d.cold, all: d.all, bal: d.bal,
     wr: weightedPick(d.fN.map(x => x + 1), max, rnd, k), rnd: weightedPick(new Array(max + 1).fill(1), max, rnd, k)};
 }
-// 5/35: số đặc biệt nóng nhất trong N kỳ gần nhất (gợi ý kèm bộ số)
-function bonusHot(g, rows, N) {
-  const c = new Array(G[g].bmax + 1).fill(0); rows.slice(0, N).forEach(r => { if (r.b) c[r.b]++; });
-  let best = 1; for (let i = 2; i <= G[g].bmax; i++) if (c[i] > c[best]) best = i; return best;
+// 5/35: số đặc biệt (1–12) cho từng phương pháp, cùng cách tính với bộ số chính nhưng trên chuỗi số đặc biệt của các kỳ trước.
+// Dùng bộ random riêng (hạt giống khác) để không làm đổi các bộ số chính đã có; cố định theo kỳ như bộ số chính.
+function predBonus(g, rows, N = getN()) {
+  if (!G[g].pickB) return null;
+  const bm = G[g].bmax, n = Math.min(N, rows.length), w = rows.slice(0, n);
+  const fN = new Array(bm + 1).fill(0), fA = fN.slice(), gap = new Array(bm + 1).fill(-1);
+  rows.forEach((r, i) => { if (!r.b) return; fA[r.b]++; if (i < n) fN[r.b]++; if (gap[r.b] < 0) gap[r.b] = i; });
+  for (let i = 1; i <= bm; i++) if (gap[i] < 0) gap[i] = rows.length;
+  const best = f => { let b = 1; for (let i = 2; i <= bm; i++) if (f(i) > f(b)) b = i; return b; };   // hòa -> số nhỏ hơn
+  const zf = a => { const v = a.slice(1), m = v.reduce((x, y) => x + y, 0) / v.length, sd = Math.sqrt(v.reduce((x, y) => x + (y - m) ** 2, 0) / v.length) || 1; return a.map(x => (x - m) / sd); };
+  const zN = zf(fN), zA = zf(fA), zG = zf(gap), rnd = mulberry32(hashSeed(g + "B" + rk(rows[0])));
+  const pick = wts => { let tot = 0; for (let i = 1; i <= bm; i++) tot += wts[i]; let x = rnd() * tot; for (let i = 1; i <= bm; i++) { x -= wts[i]; if (x <= 0) return i; } return bm; };
+  return {pos: Math.max(1, Math.min(bm, Math.round(w.reduce((a, r) => a + (r.b || 0), 0) / n))),
+    hot: best(i => fN[i] * 1000 + fA[i]), cold: best(i => gap[i]), all: best(i => fA[i]), bal: best(i => .4 * zN[i] + .3 * zA[i] + .3 * zG[i]),
+    wr: pick(fN.map(x => x + 1)), rnd: pick(new Array(bm + 1).fill(1))};
 }
 // dựng lại đúng bộ đã dự đoán TRƯỚC mỗi kỳ gần đây rồi đếm số trúng
 function predReview(g, K) {
   const rows = rowsOf(g), out = [];
   for (let t = 0; t < K && t + 60 < rows.length; t++) {
-    const sets = predSets(g, rows.slice(t + 1)), act = new Set(rows[t].n), hits = {};
-    for (const [k] of METHODS) hits[k] = sets[k].filter(x => act.has(x));
-    out.push({r: rows[t], sets, hits});
+    const sets = predSets(g, rows.slice(t + 1)), bs = predBonus(g, rows.slice(t + 1)), act = new Set(rows[t].n), hits = {}, bhit = {};
+    for (const [k] of METHODS) { hits[k] = sets[k].filter(x => act.has(x)); bhit[k] = !!(bs && bs[k] === rows[t].b); }
+    out.push({r: rows[t], sets, hits, bs, bhit});
   }
   return out;
 }
@@ -480,15 +491,15 @@ const pname = k => METHODS.find(x => x[0] === k)[1].replace(/ \(.*\)/, "");
 function renderReview(g) {
   const rv = predReview(g, 10), el = $("#predRev");
   if (!rv.length) { el.innerHTML = '<div class="hint">Chưa đủ dữ liệu để đối chiếu.</div>'; return; }
-  const last = rv[0], r = last.r, K = G[g].k, base = K * K / G[g].max;
+  const last = rv[0], r = last.r, K = G[g].k, base = K * K / G[g].max, pB = G[g].pickB;
   const res = r.n.map(x => ball(x, "sm")).join("") + (r.b ? '<span class="plus">+</span>' + ball(r.b, "gold sm") : "");
-  const rowsH = METHODS.map(([k]) => `<tr><td><b>${pname(k)}</b></td><td><div class="flex" style="gap:5px">${last.sets[k].map(x => ball(x, "sm" + (r.n.includes(x) ? " hit" : " miss"))).join("")}</div><div class="pc">trúng ${last.hits[k].length}/${K}${last.hits[k].length >= HIT_MIN ? " 🎯" : ""}</div></td></tr>`).join("");
+  const rowsH = METHODS.map(([k]) => `<tr><td><b>${pname(k)}</b></td><td><div class="flex" style="gap:5px">${last.sets[k].map(x => ball(x, "sm" + (r.n.includes(x) ? " hit" : " miss"))).join("")}${last.bs ? '<span class="plus">+</span>' + ball(last.bs[k], "gold sm" + (last.bhit[k] ? " hit" : " miss")) : ""}</div><div class="pc">trúng ${last.hits[k].length}/${K}${last.bhit[k] ? " + ĐB" : ""}${last.hits[k].length >= HIT_MIN ? " 🎯" : ""}</div></td></tr>`).join("");
   const sumH = METHODS.map(([k]) => { const tot = rv.reduce((a, x) => a + x.hits[k].length, 0), best = Math.max(...rv.map(x => x.hits[k].length));
-    return `<tr><td>${pname(k)}</td><td class="c">${tot}</td><td class="c">${(tot / rv.length).toFixed(2)}</td><td class="c">${best}</td></tr>`; }).join("");
+    return `<tr><td>${pname(k)}</td><td class="c">${tot}</td><td class="c">${(tot / rv.length).toFixed(2)}</td><td class="c">${best}</td>${pB ? `<td class="c">${rv.filter(x => x.bhit[k]).length}</td>` : ""}</tr>`; }).join("");
   el.innerHTML = `<div class="hint" style="margin:0 0 6px">Kết quả ${fmtDraw(r)}:</div><div class="flex" style="gap:5px">${res}</div><div class="hint" style="margin:4px 0 10px">${setInfo(r.n)}</div>
   <table><thead><tr><th>Phương pháp</th><th>Bộ đã dự đoán trước kỳ này</th></tr></thead><tbody>${rowsH}</tbody></table>
   <div class="hint">Tổng hợp ${rv.length} kỳ gần nhất (chọn ngẫu nhiên kỳ vọng ≈ ${base.toFixed(2)} số/kỳ):</div>
-  <table><thead><tr><th>Phương pháp</th><th>Tổng</th><th>TB/kỳ</th><th>Cao nhất</th></tr></thead><tbody>${sumH}</tbody></table>`;
+  <table><thead><tr><th>Phương pháp</th><th>Tổng</th><th>TB/kỳ</th><th>Cao nhất</th>${pB ? "<th>ĐB trúng</th>" : ""}</tr></thead><tbody>${sumH}</tbody></table>${pB ? `<div class="hint">ĐB trúng = số kỳ (trong ${rv.length} kỳ) dự đoán đúng số đặc biệt; ngẫu nhiên kỳ vọng ≈ ${(rv.length / G[g].bmax).toFixed(1)} kỳ.</div>` : ""}`;
 }
 function renderPred() {
   const g = S.game, rows = rowsOf(g), max = G[g].max, N = Math.min(getN(), rows.length);
@@ -496,15 +507,14 @@ function renderPred() {
   $("#prTitle").textContent = `🎯 Dự đoán số — ${G[g].name}`;
   $("#predM").innerHTML = METHODS.map(([k, n]) => `<option value="${k}" ${S.predM === k ? "selected" : ""}>${n}</option>`).join("");
   const sets = predSets(g, rows);
-  const m = METHODS.find(x => x[0] === S.predM), s = sets[S.predM], bh = G[g].pickB ? bonusHot(g, rows, N) : null;
-  $("#predDesc").textContent = m[2] + ` (dựa trên ${N} kỳ gần nhất)`;
+  const m = METHODS.find(x => x[0] === S.predM), s = sets[S.predM], bs = predBonus(g, rows), pb = bs ? bs[S.predM] : null;
+  $("#predDesc").textContent = m[2] + ` (dựa trên ${N} kỳ gần nhất)` + (bs ? " Quả vàng = số đặc biệt (1–12), chọn theo cùng phương pháp trên các số đặc biệt của các kỳ trước." : "");
   $("#predRes").innerHTML = `<b style="font-size:18px">Bộ số gợi ý cho kỳ tiếp theo</b>
     <div class="hint" style="margin:2px 0 6px">Cố định từ kết quả ${fmtDraw(rows[0])}, chỉ đổi khi có kỳ mới.</div>
-    <div class="balls">${s.map(n => ball(n)).join("")}</div>
-    ${bh ? `<div class="hint" style="margin:0 0 6px">+ Số đặc biệt gợi ý (ra nhiều nhất trong ${N} kỳ): <b>${pad(bh)}</b></div>` : ""}
+    <div class="balls">${s.map(n => ball(n)).join("")}${pb ? '<span class="plus">+</span>' + ball(pb, "gold") : ""}</div>
     <div class="flex" style="justify-content:space-between"><span class="hint" style="margin:0">${setInfo(s)}</span>
-    <span class="flex"><button class="copy" data-nums="${s.map(pad).join(" ")}">📋 Copy</button><button class="copy" id="toCheck">🔍 Dò bộ này</button></span></div>`;
-  $("#predAll").innerHTML = METHODS.map(([k, n]) => `<tr><td><b>${n.replace(/ \(.*\)/, "")}</b><div class="pc">${setInfo(sets[k])}</div></td><td><div class="flex" style="gap:5px">${sets[k].map(x => ball(x, "sm")).join("")}</div></td></tr>`).join("");
+    <span class="flex"><button class="copy" data-nums="${s.concat(pb ? [pb] : []).map(pad).join(" ")}">📋 Copy</button><button class="copy" id="toCheck">🔍 Dò bộ này</button></span></div>`;
+  $("#predAll").innerHTML = METHODS.map(([k, n]) => `<tr><td><b>${n.replace(/ \(.*\)/, "")}</b><div class="pc">${setInfo(sets[k])}</div></td><td><div class="flex" style="gap:5px">${sets[k].map(x => ball(x, "sm")).join("")}${bs ? '<span class="plus">+</span>' + ball(bs[k], "gold sm") : ""}</div></td></tr>`).join("");
   renderReview(g);
 
   const ck = g + "|" + N + "|" + rk(rows[0]);
@@ -522,7 +532,7 @@ function renderPred() {
   $("#btSub").textContent = `Thử dự đoán lại ${cnt} kỳ gần nhất, mỗi kỳ chỉ dùng dữ liệu trước đó (N = ${N}). Chọn ngẫu nhiên kỳ vọng ${base.toFixed(3)} số trúng / kỳ; dao động bình thường ±${(2 * se).toFixed(3)} (2 sai số chuẩn).`;
   $("#bt").innerHTML = METHODS.slice(0, 5).map(([k, n]) => { const a = cnt ? tot[k] / cnt : 0, df = (a / base - 1) * 100, sig = Math.abs(a - base) > 2 * se;
     return `<tr><td>${n.replace(/ \(.*\)/, "")}</td><td class="c" style="font-size:16px">${a.toFixed(3)}</td><td class="c" style="font-size:16px">${df >= 0 ? "+" : ""}${df.toFixed(1)}%<div class="pc">${sig ? "lệch >2σ (thử 5 cách nên dễ trùng hợp)" : "≈ ngẫu nhiên"}</div></td></tr>`; }).join("");
-  $("#toCheck")?.addEventListener("click", () => { S.pick = s.slice(); S.pickB = bh; setTab("check"); });
+  $("#toCheck")?.addEventListener("click", () => { S.pick = s.slice(); S.pickB = pb; setTab("check"); });
 }
 
 /* ───────── Dò số ───────── */
@@ -796,7 +806,7 @@ const HIT_MIN = 3;   // báo các dãy trùng từ 3 số trở lên
 // mọi bộ số "có thể trúng" ở một kỳ: dự đoán (dựng lại đúng bộ trước kỳ đó), lồng cầu, lồng cầu hard, vé đã dò, bộ yêu thích
 function drawReport(g, idx) {
   const rows = rowsOf(g), r = rows[idx], act = new Set(r.n), items = [];
-  if (idx + 60 < rows.length) { const sets = predSets(g, rows.slice(idx + 1)); METHODS.forEach(([k]) => items.push({src: "Dự đoán · " + pname(k), n: sets[k]})); }
+  if (idx + 60 < rows.length) { const sets = predSets(g, rows.slice(idx + 1)), bs = predBonus(g, rows.slice(idx + 1)); METHODS.forEach(([k]) => items.push({src: "Dự đoán · " + pname(k), n: sets[k], b: bs ? bs[k] : undefined})); }
   [["lc", "Lồng cầu", null], ["lh", "Lồng cầu hard", LCH]].forEach(([key, label, names]) => (store(key + g) || []).forEach(e => {
     const rv = lcReview(g, e); if (rv && rk(rv.r) === rk(r)) e.s.forEach((s, i) => items.push({src: `${label} · Dãy ${i + 1}${names ? " (" + names[i][1] + ")" : ""}`, n: s.n, b: s.b}));
   }));
