@@ -75,7 +75,7 @@ a{color:var(--red);font-weight:800}
 /* controls */
 .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
 .row label{font-size:17px}
-select,input[type=number],input[type=text]{font:600 16px "Nunito",sans-serif;color:var(--ink);background:#fff;border:2px solid var(--line);border-radius:16px;padding:9px 12px;max-width:100%}
+select,input[type=number],input[type=text],input[type=date]{font:600 16px "Nunito",sans-serif;color:var(--ink);background:#fff;border:2px solid var(--line);border-radius:16px;padding:9px 12px;max-width:100%}
 input[type=number]{width:110px}
 select:focus,input:focus{outline:2px solid var(--gold2);outline-offset:1px}
 .hint{color:var(--mute);font-size:15px;margin:4px 0 12px}
@@ -128,6 +128,7 @@ details{margin-top:14px}summary{cursor:pointer;font-weight:800;color:var(--red)}
 .toast.show{opacity:1;transform:translateX(-50%)}
 .fab{position:fixed;right:16px;bottom:18px;width:54px;height:54px;border-radius:50%;border:0;background:linear-gradient(135deg,#e3262b,#ff5533);color:#fff;font-size:20px;box-shadow:0 8px 18px rgba(227,38,43,.4);cursor:pointer;z-index:10}
 .notif{position:fixed;inset:0;background:rgba(20,10,5,.6);display:flex;align-items:flex-end;justify-content:center;z-index:50;padding:12px}.nbox{background:var(--card);border:2px solid var(--line);border-radius:26px 26px 20px 20px;width:100%;max-width:520px;max-height:86vh;overflow:auto;padding:18px;box-shadow:0 -8px 30px rgba(0,0,0,.3)}.nrow{border-top:1px solid var(--line);padding:8px 0}
+.hlrow td{background:#fff3c4}
 .ball.hit{box-shadow:0 0 0 3px #ffc233}.ball.miss{opacity:.3}
 .xt{border:2px solid var(--line);border-radius:20px;padding:12px 14px;margin-bottom:12px}.xt>b{font-weight:900}
 .bars{display:flex;gap:6px;height:84px;margin-top:8px}.bars>div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;font-size:12px;font-weight:700;color:var(--mute)}
@@ -138,10 +139,10 @@ details{margin-top:14px}summary{cursor:pointer;font-weight:800;color:var(--red)}
 @media(prefers-color-scheme:dark){
 :root{color-scheme:dark;--ink:#f6e9dc;--mute:#bda996;--line:#4d3b30;--cream:#3b2c24;--card:#2b211c;--red:#ff6b5e}
 body{background:#1b1411}
-.pill,.gp button,.tab,.btn,.btn.ghost,.mode,select,input[type=number],input[type=text],.ball.plain,.copy,.nums button,.ticket,.chip{background:#33261f;color:var(--ink)}
+.pill,.gp button,.tab,.btn,.btn.ghost,.mode,select,input[type=number],input[type=text],input[type=date],.ball.plain,.copy,.nums button,.ticket,.chip{background:#33261f;color:var(--ink)}
 .lc,.pickbox,.res{background:#2b211c}.res{border-color:#6b3b30}.note{background:#3b2c24}
 .hl.most{background:#4a2326;border-color:#7a3a3a}.hl.least{background:#1f2b45;border-color:#3a5288}.hl.gap{background:#46381b;border-color:#8a6a1e}
-.slot{background:#3b2c24;color:#8a7566}td{border-bottom-color:#3b2c24}.meter{background:#3b2c24}.tier{border-bottom-color:#4d3b30}
+.hlrow td{background:#4a3b12}.slot{background:#3b2c24;color:#8a7566}td{border-bottom-color:#3b2c24}.meter{background:#3b2c24}.tier{border-bottom-color:#4d3b30}
 }
 @media(max-width:460px){.ball{width:38px;height:38px;font-size:15px}.nums{gap:5px}.tabs{grid-template-columns:repeat(3,1fr)}.tab{font-size:14px;padding:10px 0}.tab .e{font-size:20px}}
 </style>
@@ -241,7 +242,12 @@ body{background:#1b1411}
   <!-- KẾT QUẢ -->
   <div class="card" id="t-hist" hidden>
     <h2 id="hsTitle"></h2>
+    <div class="row"><label for="hsDate">Xem kỳ ngày:</label><input type="date" id="hsDate"><button class="chip" id="hsLatest" type="button">⏫ Mới nhất</button></div>
+    <div class="row"><label for="hsYear">Hoặc lọc:</label><select id="hsYear"></select><select id="hsMonth"></select></div>
+    <div class="hint" id="hsInfo"></div>
+    <div class="flex" style="margin:0 0 8px"><button class="chip" id="hsNewer" type="button" hidden>⬆ 50 kỳ mới hơn</button></div>
     <table><tbody id="hsBody"></tbody></table>
+    <div class="flex" style="margin-top:12px"><button class="chip" id="hsMore" type="button">⬇ Xem thêm 50 kỳ</button><button class="chip" id="hsAll" type="button">Hiện tất cả</button></div>
   </div>
   <div class="card" id="t-cage" hidden>
     <div class="flex" style="justify-content:space-between"><h2 id="cgTitle" style="margin:0"></h2><button class="btn" id="cgSnd" aria-label="Âm thanh">🔇</button></div>
@@ -594,11 +600,25 @@ function parsePaste(txt) {
 }
 
 /* ───────── Kết quả ───────── */
+const hsDefault = g => ({g, from: 0, n: 50, y: "", m: "", d: ""});
+const histRowHtml = (r, hl) => `<tr${hl ? ' class="hlrow"' : ""}><td style="white-space:nowrap;font-weight:800;font-size:14px">${wdOf(r.d)}<br>${fmtDate(r.d)}${r.h ? "<br>" + r.h + "h" : ""}</td>
+    <td><div class="flex" style="gap:5px">${ballsHtml(r, "sm")}</div><div class="pc" style="font-size:13.5px">${setInfo(r.n)}</div></td><td style="text-align:right;font-weight:800;font-size:14px;white-space:nowrap">${esc(r.j)}</td></tr>`;
 function renderHist() {
-  const g = S.game;
-  $("#hsTitle").textContent = `🗂️ 20 kỳ gần nhất — ${G[g].name}`;
-  $("#hsBody").innerHTML = rowsOf(g).slice(0, 20).map(r => `<tr><td style="white-space:nowrap;font-weight:800;font-size:14px">${wdOf(r.d)}<br>${fmtDate(r.d)}${r.h ? "<br>" + r.h + "h" : ""}</td>
-    <td><div class="flex" style="gap:5px">${ballsHtml(r, "sm")}</div><div class="pc" style="font-size:13.5px">${setInfo(r.n)}</div></td><td style="text-align:right;font-weight:800;font-size:14px;white-space:nowrap">${esc(r.j)}</td></tr>`).join("");
+  const g = S.game, rows = rowsOf(g), H = S.hs && S.hs.g === g ? S.hs : (S.hs = hsDefault(g));
+  $("#hsTitle").textContent = `🗂️ Kết quả — ${G[g].name}`;
+  const dI = $("#hsDate"); dI.min = rows[rows.length - 1].d; dI.max = rows[0].d; if (document.activeElement !== dI) dI.value = H.d;
+  const years = [...new Set(rows.map(r => r.d.slice(0, 4)))];
+  $("#hsYear").innerHTML = '<option value="">Tất cả các năm</option>' + years.map(y => `<option value="${y}"${H.y === y ? " selected" : ""}>Năm ${y}</option>`).join("");
+  $("#hsMonth").innerHTML = '<option value="">Cả năm</option>' + Array.from({length: 12}, (_, i) => `<option value="${pad(i + 1)}"${H.m === pad(i + 1) ? " selected" : ""}>Tháng ${i + 1}</option>`).join("");
+  $("#hsMonth").disabled = !H.y;
+  let list, from = 0, info;
+  if (H.y) { const pre = H.y + (H.m ? "-" + H.m : ""); list = rows.filter(r => r.d.startsWith(pre)); info = `${list.length} kỳ trong ${H.m ? "tháng " + (+H.m) + "/" : "năm "}${H.y}`; }
+  else { from = Math.min(H.from, rows.length - 1); list = rows.slice(from, from + H.n); info = `Đang hiện kỳ ${from + 1}–${from + list.length} / ${vi(rows.length)} kỳ (mới nhất → cũ nhất)`; }
+  if (H.d) { const same = rows.filter(r => r.d === H.d).length; info = (same ? `Có ${same} kỳ ngày ${fmtDate(H.d)} (tô vàng). ` : `Không có kỳ ngày ${fmtDate(H.d)} — hiện từ kỳ gần nhất trước đó. `) + info; }
+  $("#hsInfo").textContent = info;
+  $("#hsBody").innerHTML = list.map(r => histRowHtml(r, H.d && r.d === H.d)).join("") || '<tr><td>Không có kỳ nào</td></tr>';
+  $("#hsNewer").hidden = !!H.y || from === 0;
+  $("#hsMore").hidden = $("#hsAll").hidden = !!H.y || from + list.length >= rows.length;
 }
 
 /* ───────── Lồng cầu ───────── */
@@ -923,6 +943,17 @@ async function init() {
   });
   $("#chDistinct").onchange = e => { LH.distinct = e.target.checked; };
   $("#fab").onclick = () => scrollTo({top: 0, behavior: "smooth"});
+  $("#hsDate").onchange = e => {
+    const H = S.hs, rows = rowsOf(S.game); H.y = H.m = ""; H.d = e.target.value; H.n = 50;
+    if (H.d) { const i = rows.findIndex(r => r.d <= H.d); H.from = i < 0 ? Math.max(0, rows.length - H.n) : i; } else H.from = 0;
+    renderHist(); $("#hsInfo").scrollIntoView({behavior: "smooth", block: "center"});
+  };
+  $("#hsYear").onchange = e => { const H = S.hs; H.y = e.target.value; H.m = ""; H.d = ""; renderHist(); };
+  $("#hsMonth").onchange = e => { const H = S.hs; H.m = e.target.value; H.d = ""; renderHist(); };
+  $("#hsLatest").onclick = () => { S.hs = hsDefault(S.game); renderHist(); };
+  $("#hsNewer").onclick = () => { S.hs.from = Math.max(0, S.hs.from - 50); renderHist(); };
+  $("#hsMore").onclick = () => { S.hs.n += 50; renderHist(); };
+  $("#hsAll").onclick = () => { S.hs.n = rowsOf(S.game).length - S.hs.from; renderHist(); };
   $("#nclose").onclick = closeNotice; $("#reNotice").onclick = () => showNotice(true);
   $("#notif").onclick = e => { if (e.target.id === "notif") closeNotice(); };
   document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#notif").hidden) closeNotice(); });
