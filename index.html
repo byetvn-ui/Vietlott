@@ -284,7 +284,7 @@ const G = {
   "655": {name: "Power 6/55", max: 55, k: 6, bonus: true,  bmax: 55, bdist: true,  days: [2,4,6], hours: [18]},
   "645": {name: "Mega 6/45",  max: 45, k: 6, bonus: false, bmax: 0,  bdist: false, days: [3,5,0], hours: [18]},
   // Lotto 5/35: 5 số (1–35) + 1 số đặc biệt (1–12, có thể trùng số chính), quay mỗi ngày 2 kỳ: 13h và 21h
-  "535": {name: "Lotto 5/35", max: 35, k: 5, bonus: true,  bmax: 12, bdist: false, days: [0,1,2,3,4,5,6], hours: [13,21], pickB: true}
+  "535": {name: "Lotto 5/35", max: 35, k: 5, bonus: true,  bmax: 12, bdist: false, days: [0,1,2,3,4,5,6], hours: [13,21], pickB: true, k0: "2025-06-29"}
 };
 const GS = ["655", "645", "535"];
 const GA = () => GS.filter(g => rowsOf(g).length);   // các game có trong dữ liệu (data.js cũ có thể chưa có 5/35)
@@ -300,6 +300,15 @@ const fmtDate = iso => { const [y,m,d] = iso.split("-"); return `${d}/${m}/${y}`
 const wdOf = iso => { const [y,m,d] = iso.split("-").map(Number); return WD[new Date(Date.UTC(y,m-1,d)).getUTCDay()]; };
 const rowsOf = g => DATA.games[g] ? DATA.games[g].rows : [];
 const rk = r => r.d + (r.h ? "T" + pad(r.h) : "");                               // khóa 1 kỳ (5/35 có thêm giờ)
+// Số kỳ: 6/45 và 6/55 = số thứ tự trong dữ liệu (dữ liệu bắt đầu từ kỳ #1).
+// 5/35 = đếm theo lịch quay cố định (2 kỳ/ngày) từ kỳ #1 = 13h 29/06/2025, nên vẫn đúng số chính thức dù nguồn lịch sử thiếu 1 kỳ cũ.
+const kyNo = (g, r, i) => {
+  if (G[g].k0) {
+    const [y, m, d] = r.d.split("-").map(Number), [y0, m0, d0] = G[g].k0.split("-").map(Number), hs = G[g].hours;
+    return Math.round((Date.UTC(y, m - 1, d) - Date.UTC(y0, m0 - 1, d0)) / 86400000) * hs.length + hs.indexOf(r.h) + 1;
+  }
+  const rows = rowsOf(g); return rows.length - (i ?? rows.indexOf(r));
+};
 const fmtDraw = r => fmtDate(r.d) + (r.h ? " · " + r.h + "h" : "");
 const splitT = (g, t) => G[g].pickB ? {n: t.slice(0, G[g].k), b: t[G[g].k]} : {n: t, b: null};  // vé 5/35 = 5 số + số đặc biệt ở cuối
 const fmtT = (g, t) => { const x = splitT(g, t); return x.n.map(pad).join(" ") + (x.b != null ? " + " + pad(x.b) : ""); };
@@ -334,7 +343,7 @@ function renderLive() {
     return [`<div class="lc"><div class="lh"><span class="nm">${G[g].name}</span>
       <span class="dt">${wdOf(r.d)}, ${fmtDate(r.d)}${r.h ? " · " + r.h + "h" : ""} ${r.d === today ? '<span class="badge new">Hôm nay</span>' : ""}</span></div>
       <div class="balls">${ballsHtml(r)}</div>
-      <div class="dt">${setInfo(r.n)}</div>
+      <div class="dt">Kỳ #${kyNo(g, r, 0)} · ${setInfo(r.n)}</div>
       <div class="dt">Jackpot${g === "655" ? " 1" : ""}: <b style="color:var(--ink)">${esc(r.j) || (Date.now() - drawTs(r.d, r.h) < 36 * 3600e3 ? "⏳ đang cập nhật…" : "—")}</b></div>
       <div class="nx"></div></div>`, nx];
   });
@@ -601,7 +610,7 @@ function parsePaste(txt) {
 
 /* ───────── Kết quả ───────── */
 const hsDefault = g => ({g, from: 0, n: 50, y: "", m: "", d: ""});
-const histRowHtml = (r, hl) => `<tr${hl ? ' class="hlrow"' : ""}><td style="white-space:nowrap;font-weight:800;font-size:14px">${wdOf(r.d)}<br>${fmtDate(r.d)}${r.h ? "<br>" + r.h + "h" : ""}</td>
+const histRowHtml = (r, hl, no) => `<tr${hl ? ' class="hlrow"' : ""}><td style="white-space:nowrap;font-weight:800;font-size:14px">${wdOf(r.d)}<br>${fmtDate(r.d)}${r.h ? "<br>" + r.h + "h" : ""}<br><span style="color:var(--mute);font-weight:700">Kỳ #${no}</span></td>
     <td><div class="flex" style="gap:5px">${ballsHtml(r, "sm")}</div><div class="pc" style="font-size:13.5px">${setInfo(r.n)}</div></td><td style="text-align:right;font-weight:800;font-size:14px;white-space:nowrap">${esc(r.j)}</td></tr>`;
 function renderHist() {
   const g = S.game, rows = rowsOf(g), H = S.hs && S.hs.g === g ? S.hs : (S.hs = hsDefault(g));
@@ -616,7 +625,8 @@ function renderHist() {
   else { from = Math.min(H.from, rows.length - 1); list = rows.slice(from, from + H.n); info = `Đang hiện kỳ ${from + 1}–${from + list.length} / ${vi(rows.length)} kỳ (mới nhất → cũ nhất)`; }
   if (H.d) { const same = rows.filter(r => r.d === H.d).length; info = (same ? `Có ${same} kỳ ngày ${fmtDate(H.d)} (tô vàng). ` : `Không có kỳ ngày ${fmtDate(H.d)} — hiện từ kỳ gần nhất trước đó. `) + info; }
   $("#hsInfo").textContent = info;
-  $("#hsBody").innerHTML = list.map(r => histRowHtml(r, H.d && r.d === H.d)).join("") || '<tr><td>Không có kỳ nào</td></tr>';
+  const ix = new Map(rows.map((r, i) => [r, i]));
+  $("#hsBody").innerHTML = list.map(r => histRowHtml(r, H.d && r.d === H.d, kyNo(g, r, ix.get(r)))).join("") || '<tr><td>Không có kỳ nào</td></tr>';
   $("#hsNewer").hidden = !!H.y || from === 0;
   $("#hsMore").hidden = $("#hsAll").hidden = !!H.y || from + list.length >= rows.length;
 }
@@ -858,7 +868,7 @@ function noticeHtml(list) {
     const body = rep.good.length
       ? `<div class="hint" style="margin:8px 0 0;color:var(--red)"><b>🎯 ${rep.good.length} dãy trúng từ ${HIT_MIN} số trở lên:</b></div>${rep.good.slice(0, 12).map(row).join("")}${rep.good.length > 12 ? `<div class="hint">…và ${rep.good.length - 12} dãy nữa</div>` : ""}`
       : `<div class="hint" style="margin:8px 0 0">Không dãy nào trùng từ ${HIT_MIN} số.${best ? ` Cao nhất: ${best.src} (${best.hits}/${G[g].k}).` : ""}</div>`;
-    return `<div style="margin-bottom:14px"><h3 style="margin:0;font-size:18px;color:var(--red)">🔔 ${G[g].name} · ${w} ${fmtDraw(r)}</h3><div class="flex" style="gap:5px;margin:8px 0 2px">${ballsHtml(r, "sm")}</div><div class="hint" style="margin:2px 0 0">${setInfo(r.n)}</div>${body}</div>`;
+    return `<div style="margin-bottom:14px"><h3 style="margin:0;font-size:18px;color:var(--red)">🔔 ${G[g].name} · ${w} ${fmtDraw(r)} · kỳ #${kyNo(g, r, idx)}</h3><div class="flex" style="gap:5px;margin:8px 0 2px">${ballsHtml(r, "sm")}</div><div class="hint" style="margin:2px 0 0">${setInfo(r.n)}</div>${body}</div>`;
   }).join("");
 }
 function showNotice(force) {
