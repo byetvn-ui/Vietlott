@@ -67,7 +67,7 @@ a{color:var(--red);font-weight:800}
 .ball.miss{opacity:.35}
 
 /* tabs */
-.tabs{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:4px 0 14px}
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:4px 0 14px}
 .tab{border:2px solid var(--line);background:#fff;border-radius:22px;padding:10px 2px;font:800 15px/1.2 "Nunito",sans-serif;color:var(--ink);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;min-height:74px;justify-content:center}
 .tab .e{font-size:22px}
 .tab[aria-selected=true]{background:linear-gradient(180deg,#ffd45c,#ffb82e);border-color:#e6a100;box-shadow:0 5px 12px rgba(230,161,0,.35)}
@@ -144,7 +144,7 @@ body{background:#1b1411}
 .hl.most{background:#4a2326;border-color:#7a3a3a}.hl.least{background:#1f2b45;border-color:#3a5288}.hl.gap{background:#46381b;border-color:#8a6a1e}
 .hlrow td{background:#4a3b12}.slot{background:#3b2c24;color:#8a7566}td{border-bottom-color:#3b2c24}.meter{background:#3b2c24}.tier{border-bottom-color:#4d3b30}
 }
-@media(max-width:460px){.ball{width:38px;height:38px;font-size:15px}.nums{gap:5px}.tabs{grid-template-columns:repeat(3,1fr)}.tab{font-size:14px;padding:10px 0}.tab .e{font-size:20px}}
+@media(max-width:460px){.ball{width:38px;height:38px;font-size:15px}.nums{gap:5px}.tabs{grid-template-columns:repeat(3,1fr)}.tab:last-child:nth-child(3n+1){grid-column:1/-1}.tab{font-size:14px;padding:10px 0}.tab .e{font-size:20px}}
 </style>
 </head>
 <body>
@@ -180,6 +180,7 @@ body{background:#1b1411}
     <button class="tab" data-t="hist"><span class="e">🗂️</span>Kết quả</button>
     <button class="tab" data-t="cage"><span class="e">🎰</span>Lồng cầu</button>
     <button class="tab" data-t="cageh"><span class="e">🧠</span>Lồng cầu hard</button>
+    <button class="tab" data-t="tally"><span class="e">🏆</span>Bộ đếm trúng giải</button>
   </nav>
 
   <!-- DÒ SỐ -->
@@ -269,6 +270,11 @@ body{background:#1b1411}
     <div class="row" style="justify-content:space-between;margin:18px 0 0"><b id="chHistTitle"></b><button class="chip" id="chClear">Xóa</button></div>
     <div class="hint" id="chSum"></div><div id="chHist"></div>
   </div>
+  <div class="card" id="t-tally" hidden>
+    <h2 id="tlTitle" style="margin:0 0 6px"></h2>
+    <p class="hint">Đếm số lần các bộ số trúng từng hạng giải (6/45 và 6/55 tính từ giải ba, 5/35 tính đủ cả giải khuyến khích). <b>Dự đoán</b> được dựng lại cho từng kỳ trong quá khứ; <b>Lồng cầu</b> và <b>Lồng cầu hard</b> cộng dồn các lần quay đã có kết quả; <b>vé</b> và <b>bộ yêu thích</b> đối chiếu toàn bộ lịch sử.</p>
+    <div id="tlBody"></div>
+  </div>
 
   <div style="text-align:center;margin:6px 0 10px"><button class="chip" id="reNotice">🔔 Xem lại đối chiếu kỳ mới nhất</button></div>
   <div class="foot">Nguồn dữ liệu: ketquadientoan.com (chính) và minhngoc.net.vn / minhchinh.com (dự phòng, đối chiếu chéo). Trang cá nhân phi thương mại, <b>không phải trang chính thức của Vietlott</b> — kết quả chính thức xem tại vietlott.vn. Chỉ dành cho người từ 18 tuổi; xổ số là ngẫu nhiên, hãy chơi có trách nhiệm.</div>
@@ -289,7 +295,7 @@ const G = {
 const GS = ["655", "645", "535"];
 const GA = () => GS.filter(g => rowsOf(g).length);   // các game có trong dữ liệu (data.js cũ có thể chưa có 5/35)
 const WD = ["CN","T2","T3","T4","T5","T6","T7"];
-const S = {game: "655", tab: "stats", range: "all", sort: "desc", mode: "main", predN: 20, predM: "pos", seed: 0, pick: [], pickB: null, tickets: []};
+const S = {game: "655", tab: "stats", range: "all", sort: "desc", mode: "main", predN: 20, predM: "pos", seed: 0, pick: [], pickB: null, tlR: 300, tickets: []};
 let DATA = null, STATUS = null, serverMode = false, lastShell = "";
 const BT = {};
 
@@ -558,15 +564,15 @@ const TIERS = g => G[g].pickB
   ? [["j1", "Độc đắc (5 số + ĐB)"], ["g1", "Giải nhất (5 số)"], ["g2", "Giải nhì (4 số + ĐB)"], ["g3", "Giải ba (4 số)"], ["g4", "Giải tư (3 số + ĐB)"], ["g5", "Giải năm (3 số)"], ["kk", "Khuyến khích (≤2 số + ĐB)"]]
   : G[g].bonus ? [["j1", "Jackpot 1 (6 số)"], ["j2", "Jackpot 2 (5 số + số phụ)"], ["m5", "Giải nhất (5 số)"], ["m4", "Giải nhì (4 số)"], ["m3", "Giải ba (3 số)"]]
   : [["j1", "Jackpot (6 số)"], ["m5", "Giải nhất (5 số)"], ["m4", "Giải nhì (4 số)"], ["m3", "Giải ba (3 số)"]];
+// Hạng giải của một bộ số (set = các số chính, tb = số đặc biệt đã chọn nếu có) so với kết quả r; null = không trúng giải
+function tierFor(g, set, tb, r) {
+  const K = G[g].k, m = r.n.filter(x => set.has(x)).length;
+  if (G[g].pickB) { const bb = tb != null && r.b === tb; return m === 5 ? (bb ? "j1" : "g1") : m === 4 ? (bb ? "g2" : "g3") : m === 3 ? (bb ? "g4" : "g5") : bb ? "kk" : null; }
+  return m === K ? "j1" : (m === K - 1 && G[g].bonus && r.b && set.has(r.b)) ? "j2" : m >= 3 ? "m" + m : null;
+}
 function checkTicket(g, t) {
   const rows = rowsOf(g), K = G[g].k, {n: tn, b: tb} = splitT(g, t), set = new Set(tn), tiers = {};
-  rows.forEach(r => {
-    const m = r.n.filter(x => set.has(x)).length;
-    let k = null;
-    if (G[g].pickB) { const bb = tb != null && r.b === tb; k = m === 5 ? (bb ? "j1" : "g1") : m === 4 ? (bb ? "g2" : "g3") : m === 3 ? (bb ? "g4" : "g5") : bb ? "kk" : null; }
-    else k = m === K ? "j1" : (m === K - 1 && G[g].bonus && r.b && set.has(r.b)) ? "j2" : m >= 3 ? "m" + m : null;
-    if (k) { (tiers[k] ||= {c: 0, last: r}).c++; }
-  });
+  rows.forEach(r => { const k = tierFor(g, set, tb, r); if (k) { (tiers[k] ||= {c: 0, last: r}).c++; } });
   const l = rows[0], hit = l.n.filter(x => set.has(x));
   return {tiers, latest: l, hit, bonusHit: G[g].pickB ? (tb != null && l.b === tb) : !!(l.b && set.has(l.b))};
 }
@@ -665,7 +671,7 @@ function lcReview(g, x) {
   const act = new Set(r.n), hits = x.s.map(s => s.n.filter(v => act.has(v)).length);
   return {r, act, hits, best: Math.max(...hits)};
 }
-function lcSaveHist() { const k = "lc" + S.game, h = store(k) || []; h.unshift({t: Date.now(), s: L.sets.list}); store(k, h.slice(0, 10)); }
+function lcSaveHist() { const k = "lc" + S.game, h = store(k) || []; h.unshift({t: Date.now(), s: L.sets.list}); store(k, h.slice(0, 40)); }
 function lcStart() {
   if (L.busy) return;
   const g = S.game, per = G[g].k + (G[g].bonus ? 1 : 0);
@@ -700,7 +706,7 @@ function renderCage() {
   $("#cgGo").textContent = L.mode === "full" ? "🎰 QUAY 5 DÃY" : (!cur || done ? "🎯 QUAY QUẢ ĐẦU TIÊN" : `🎯 QUAY QUẢ ${L.shown + 1}/${per}`);
   $("#cgGo").disabled = L.busy;
   const h = store("lc" + g) || [];
-  $("#cgHistTitle").textContent = `Lịch sử & đối chiếu (${h.length}/10)`;
+  $("#cgHistTitle").textContent = `Lịch sử & đối chiếu (${h.length}/40)`;
   const rvs = h.map(x => lcReview(g, x)), done2 = rvs.filter(Boolean), base = G[g].k * G[g].k / G[g].max;
   const nLines = done2.reduce((a, v) => a + v.hits.length, 0), tot = done2.reduce((a, v) => a + v.hits.reduce((p, q) => p + q, 0), 0);
   $("#cgSum").textContent = done2.length ? `Đã đối chiếu ${done2.length} lần quay (${nLines} dãy): trung bình trúng ${(tot / nLines).toFixed(2)}/${G[g].k} số mỗi dãy — ngẫu nhiên kỳ vọng ≈ ${base.toFixed(2)}.` : "";
@@ -739,7 +745,7 @@ function lhGen(g) {
   return list;
 }
 function lhStop() { LH.tm.forEach(clearTimeout); LH.tm = []; clearInterval(LH.iv); LH.busy = false; }
-function lhSaveHist() { const k = "lh" + S.game, h = store(k) || []; h.unshift({t: Date.now(), s: LH.sets.list}); store(k, h.slice(0, 10)); }
+function lhSaveHist() { const k = "lh" + S.game, h = store(k) || []; h.unshift({t: Date.now(), s: LH.sets.list}); store(k, h.slice(0, 40)); }
 function lhStart() {
   if (LH.busy) return;
   const g = S.game, per = G[g].k + (G[g].bonus ? 1 : 0);
@@ -774,7 +780,7 @@ function renderCageH() {
   $("#chGo").textContent = LH.mode === "full" ? "🎰 QUAY 5 DÃY" : (!cur || done ? "🎯 QUAY QUẢ ĐẦU TIÊN" : `🎯 QUAY QUẢ ${LH.shown + 1}/${per}`);
   $("#chGo").disabled = LH.busy;
   const h = store("lh" + g) || [];
-  $("#chHistTitle").textContent = `Lịch sử & đối chiếu (${h.length}/10)`;
+  $("#chHistTitle").textContent = `Lịch sử & đối chiếu (${h.length}/40)`;
   const rvs = h.map(x => lcReview(g, x)), done2 = rvs.filter(Boolean), base = G[g].k * G[g].k / G[g].max;
   const nLines = done2.reduce((a, v) => a + v.hits.length, 0), tot = done2.reduce((a, v) => a + v.hits.reduce((p, q) => p + q, 0), 0);
   $("#chSum").textContent = done2.length ? `Đã đối chiếu ${done2.length} lần quay (${nLines} dãy): trung bình trúng ${(tot / nLines).toFixed(2)}/${G[g].k} số mỗi dãy — ngẫu nhiên kỳ vọng ≈ ${base.toFixed(2)}.` : "";
@@ -787,12 +793,60 @@ function renderCageH() {
   }).join("") : '<div class="hint">Chưa có lịch sử quay</div>';
 }
 
+/* ───────── Bộ đếm trúng giải ───────── */
+const comb = (n, r) => { let x = 1; for (let i = 1; i <= r; i++) x = x * (n - r + i) / i; return x; };
+// xác suất một dòng ngẫu nhiên có giải (từ giải ba / 3 số trở lên; 5/35 còn thêm giải khuyến khích chỉ cần trúng số đặc biệt)
+function anyPrizeProb(g) { const K = G[g].k, mx = G[g].max; let p = 0; for (let i = 3; i <= K; i++) p += comb(K, i) * comb(mx - K, K - i) / comb(mx, K); return G[g].pickB ? p + (1 - p) / G[g].bmax : p; }
+const tierChips = (g, t) => TIERS(g).filter(([k]) => t[k]).map(([k, n]) => `<span class="chip" style="cursor:default">${n.replace(/ \(.*\)/, "")}: <b>${t[k]}</b></span>`).join("") || '<span class="hint" style="margin:0">chưa trúng giải nào</span>';
+const TLC = {};
+function predTally(g, T) {      // dựng lại 7 bộ dự đoán trước từng kỳ trong quá khứ rồi đếm hạng giải
+  const rows = rowsOf(g), ck = [g, T, getN(), rk(rows[0])].join("|");
+  if (TLC[ck]) return TLC[ck];
+  const out = {}; METHODS.forEach(([k]) => out[k] = {tiers: {}, any: 0});
+  for (let t = 0; t < T; t++) {
+    const past = rows.slice(t + 1), sets = predSets(g, past), bs = predBonus(g, past, getN(), sets);
+    for (const [k] of METHODS) { const key = tierFor(g, new Set(sets[k]), bs ? bs[k] : null, rows[t]); if (key) { out[k].tiers[key] = (out[k].tiers[key] || 0) + 1; out[k].any++; } }
+  }
+  return TLC[ck] = {T, out};
+}
+// Lồng cầu / hard: cộng dồn các lần quay đã có kết quả (mỗi lần quay chỉ đếm 1 lần, đánh dấu e.d = 1)
+function settleTally() {
+  for (const g of GA()) for (const [hk, tk] of [["lc", "tlc"], ["lh", "tlh"]]) {
+    const h = store(hk + g); if (!h || !h.length) continue;
+    const T = store(tk + g) || {spins: 0, lines: 0, tiers: {}}; let chg = false;
+    for (const e of h) {
+      if (e.d) continue; const rv = lcReview(g, e); if (!rv) continue;
+      e.s.forEach(s => { const k = tierFor(g, new Set(s.n), s.b, rv.r); T.lines++; if (k) T.tiers[k] = (T.tiers[k] || 0) + 1; });
+      T.spins++; e.d = 1; chg = true;
+    }
+    if (chg) { store(hk + g, h); store(tk + g, T); }
+  }
+}
+function renderTally() {
+  settleTally();
+  const g = S.game, rows = rowsOf(g), ex = anyPrizeProb(g), R = S.tlR, maxT = Math.max(0, rows.length - 61);
+  $("#tlTitle").textContent = `🏆 Bộ đếm trúng giải — ${G[g].name}`;
+  const pt = predTally(g, R === 0 ? maxT : Math.min(R, maxT)), pct = (a, b) => b ? (a / b * 100).toFixed(1) + "%" : "—";
+  let h = `<div class="xt"><b>🎯 Dự đoán (7 phương pháp)</b>
+    <div class="row" style="margin:8px 0"><label for="tlRange">Tính trên:</label><select id="tlRange">${[[100, "100 kỳ gần nhất"], [300, "300 kỳ gần nhất"], [1000, "1.000 kỳ gần nhất"], [0, "Tất cả các kỳ"]].map(([v, t]) => `<option value="${v}"${R === v ? " selected" : ""}>${t}</option>`).join("")}</select></div>
+    <div class="hint" style="margin:0 0 4px">Mỗi kỳ có 1 dòng cho mỗi phương pháp, tổng <b>${pt.T}</b> kỳ. Ngẫu nhiên kỳ vọng ≈ <b>${(ex * 100).toFixed(1)}%</b> số kỳ có giải.</div>
+    ${METHODS.map(([k]) => `<div class="nrow"><div class="pc" style="font-size:14px"><b>${pname(k)}</b> · ${pt.out[k].any}/${pt.T} kỳ có giải (${pct(pt.out[k].any, pt.T)})</div><div class="flex" style="gap:4px;margin-top:4px;flex-wrap:wrap">${tierChips(g, pt.out[k].tiers)}</div></div>`).join("")}</div>`;
+  for (const [key, title] of [["tlc", "🎰 Lồng cầu"], ["tlh", "🧠 Lồng cầu hard"]]) {
+    const T = store(key + g) || {spins: 0, lines: 0, tiers: {}}, any = Object.values(T.tiers).reduce((a, b) => a + b, 0);
+    h += `<div class="xt"><b>${title}</b><div class="hint" style="margin:6px 0 4px">Đã đối chiếu <b>${T.spins}</b> lần quay (${T.lines} dãy): <b>${any}</b> dãy trúng giải (${pct(any, T.lines)}); ngẫu nhiên kỳ vọng ≈ ${(ex * 100).toFixed(1)}%.</div><div class="flex" style="gap:4px;flex-wrap:wrap">${tierChips(g, T.tiers)}</div>${T.lines ? `<button class="chip" data-tlreset="${key}" style="margin-top:8px">↺ Đặt lại bộ đếm</button>` : ""}</div>`;
+  }
+  const mine = (store("tk" + g) || []).map(t => ["Vé đã dò", t]).concat((store("fav" + g) || []).map(t => ["Yêu thích", t]));
+  h += `<div class="xt"><b>🎫 Vé đã dò & bộ yêu thích</b><div class="hint" style="margin:6px 0 4px">Đối chiếu với toàn bộ ${vi(rows.length)} kỳ.</div>${mine.length ? mine.map(([lb, t]) => { const c = checkTicket(g, t), tr = {}; for (const k in c.tiers) tr[k] = c.tiers[k].c;
+    return `<div class="nrow"><div class="pc" style="font-size:14px"><b>${lb}</b></div><div class="flex" style="gap:4px;margin:4px 0">${tBalls(g, t)}</div><div class="flex" style="gap:4px;flex-wrap:wrap">${tierChips(g, tr)}</div></div>`; }).join("") : '<div class="hint">Chưa có vé nào — lưu vé ở tab Dò số.</div>'}</div>`;
+  $("#tlBody").innerHTML = h;
+}
+
 /* ───────── Điều khiển chung ───────── */
 function setTab(t) {
   S.tab = t;
   document.querySelectorAll(".tab").forEach(b => b.setAttribute("aria-selected", b.dataset.t === t));
-  for (const k of ["check", "stats", "pred", "hist", "cage", "cageh"]) $("#t-" + k).hidden = k !== t;
-  if (t === "check") renderPick(); if (t === "stats") renderStats(); if (t === "pred") renderPred(); if (t === "hist") renderHist(); if (t === "cage") renderCage(); if (t === "cageh") renderCageH();
+  for (const k of ["check", "stats", "pred", "hist", "cage", "cageh", "tally"]) $("#t-" + k).hidden = k !== t;
+  if (t === "check") renderPick(); if (t === "stats") renderStats(); if (t === "pred") renderPred(); if (t === "hist") renderHist(); if (t === "cage") renderCage(); if (t === "cageh") renderCageH(); if (t === "tally") renderTally();
 }
 function setGame(g) {
   lcStop(); L.sets = null; L.shown = 0; lhStop(); LH.sets = null; LH.shown = 0; S.game = g; S.mode = "main"; S.pick = []; S.pickB = null; S.tickets = store("tk" + g) || []; $("#checkRes").innerHTML = "";
@@ -877,7 +931,7 @@ function showNotice(force) {
   $("#nbody").innerHTML = noticeHtml(list); $("#notif").hidden = false;
 }
 function closeNotice() { $("#notif").hidden = true; for (const g of GS) { const rows = rowsOf(g); if (rows.length) store("seen" + g, rk(rows[0])); } }
-function notifyTickets() { showNotice(false); }
+function notifyTickets() { settleTally(); showNotice(false); }
 async function pullStatic() {
   try {
     const r = await fetch("data.js?t=" + Date.now(), {cache: "no-store"});
@@ -964,11 +1018,13 @@ async function init() {
   $("#hsNewer").onclick = () => { S.hs.from = Math.max(0, S.hs.from - 50); renderHist(); };
   $("#hsMore").onclick = () => { S.hs.n += 50; renderHist(); };
   $("#hsAll").onclick = () => { S.hs.n = rowsOf(S.game).length - S.hs.from; renderHist(); };
+  $("#tlBody").addEventListener("change", e => { if (e.target.id === "tlRange") { S.tlR = +e.target.value; renderTally(); } });
+  $("#tlBody").addEventListener("click", e => { const b = e.target.closest("[data-tlreset]"); if (b && confirm("Đặt lại bộ đếm này về 0? (các lần quay cũ sẽ không bị đếm lại)")) { store(b.dataset.tlreset + S.game, {spins: 0, lines: 0, tiers: {}}); renderTally(); } });
   $("#nclose").onclick = closeNotice; $("#reNotice").onclick = () => showNotice(true);
   $("#notif").onclick = e => { if (e.target.id === "notif") closeNotice(); };
   document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#notif").hidden) closeNotice(); });
   setGame("655"); setTab("stats"); setPill();
-  showNotice(false);
+  settleTally(); showNotice(false);
   setInterval(renderLive, 1000);
   if (serverMode) { $("#syncBtn").hidden = false; setInterval(() => pull(false), 20000); }
   else if (location.protocol.startsWith("http")) setInterval(pullStatic, 60000);
