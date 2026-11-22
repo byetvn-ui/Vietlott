@@ -415,6 +415,22 @@ td.c{font-family:var(--mono)}
 .foot{font-family:var(--mono);font-size:12.5px}
 .td-balls,td .balls{gap:3px}
 td .ball{width:29px;height:29px;font-size:11.5px}
+
+/* ── Thần Tài ── */
+.balls.ttrow{padding-top:14px;gap:6px!important;flex-wrap:nowrap}
+.balls.ttrow .ball.sm{width:30px;height:30px;font-size:12.5px}
+.ball.tt{position:relative;overflow:visible}
+.ball.tt::before{content:"";position:absolute;left:50%;bottom:76%;width:140%;height:50%;transform:translateX(-50%);background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 44'%3E%3Crect x='2' y='27' width='96' height='5' rx='2.5' fill='%233a1a12'/%3E%3Ccircle cx='6' cy='29.5' r='5.5' fill='%23d9242b' stroke='%233a1a12' stroke-width='2'/%3E%3Ccircle cx='94' cy='29.5' r='5.5' fill='%23d9242b' stroke='%233a1a12' stroke-width='2'/%3E%3Cpath d='M26 34 Q26 5 50 5 Q74 5 74 34 Z' fill='%23d9242b' stroke='%237a0f14' stroke-width='2'/%3E%3Crect x='26' y='27' width='48' height='6' fill='%23ffcb3a'/%3E%3Ccircle cx='50' cy='13' r='4.5' fill='%23ffcb3a' stroke='%23b8860b' stroke-width='1.5'/%3E%3C/svg%3E") center bottom/contain no-repeat;pointer-events:none}
+.ball.tt:not(.plain){background:radial-gradient(circle at 32% 26%,#f6d77a,#c8921f 55%,#8a5a10);color:#fff;box-shadow:0 3px 6px rgba(120,80,10,.4);text-shadow:0 1px 2px rgba(0,0,0,.45);border:0}
+.ball.tt.gold:not(.plain){background:radial-gradient(circle at 32% 26%,#fff3b0,#ffcf3a 60%,#d19600);color:#4a2e00;text-shadow:none}
+.ball.tt.plain{border-style:dashed}
+.ball.tt.plain::before{opacity:.55;filter:grayscale(.4)}
+.mascot{display:inline-block;vertical-align:-9px;margin-right:6px;width:40px;height:40px}
+.ttbless{font-size:13.5px;color:var(--ink);background:var(--warm);border:2px dashed var(--warmb);border-radius:12px;padding:8px 12px;margin:8px 0;font-weight:700}
+.ttwin{display:flex;align-items:center;gap:10px;margin-bottom:10px;background:var(--warm);border:2px dashed var(--warmb);border-radius:14px;padding:8px 12px;font-weight:900;color:var(--red)}
+.ttwin svg{flex:none;animation:ttbob 1s ease-in-out infinite}
+@keyframes ttbob{50%{transform:translateY(-4px) rotate(-3deg)}}
+@media(prefers-reduced-motion:reduce){.ttwin svg{animation:none}}
 .themebtn{width:36px;height:30px;border-radius:8px;border:2px solid var(--line);background:var(--paper);color:var(--ink);font-size:16px;line-height:1;cursor:pointer;padding:0}
 .top .tr{display:flex;gap:8px;align-items:center}
 </style>
@@ -422,7 +438,7 @@ td .ball{width:29px;height:29px;font-size:11.5px}
 <body>
 <div class="app">
   <div class="top">
-    <h1>🎰 Thống kê Vietlott</h1>
+    <h1><span id="mascotH"></span>Thống kê Vietlott</h1>
     <div class="tr"><span class="pill" id="srv"><i></i><span>Đang tải…</span></span><button class="themebtn" id="themeBtn" type="button" aria-label="Đổi chế độ sáng/tối" title="Đổi chế độ sáng/tối">🌓</button></div>
   </div>
 
@@ -527,7 +543,7 @@ td .ball{width:29px;height:29px;font-size:11.5px}
     <p class="hint">5 dãy được bốc <b>hoàn toàn ngẫu nhiên</b> bằng <code>crypto.getRandomValues</code> của trình duyệt (không dùng thống kê — phần thống kê nằm ở tab Dự đoán). Mỗi bộ số đều có cơ hội trúng như nhau! 😄</p>
     <div class="modes" id="cgModes"></div>
     <label class="hint" style="display:flex;gap:8px;align-items:center;margin-top:0"><input type="checkbox" id="cgDistinct"> 5 dãy không trùng số nào</label>
-    <div id="cgLines"></div><div class="hint" id="cgNote"></div>
+    <div id="cgLines"></div><div class="hint" id="cgNote"></div><div id="cgBless"></div>
     <button class="btn red" id="cgGo" style="width:100%"></button>
     <div class="row" style="justify-content:space-between;margin:18px 0 0"><b id="cgHistTitle"></b><button class="chip" id="cgClear">Xóa</button></div>
     <div class="hint" id="cgSum"></div><div id="cgHist"></div>
@@ -537,7 +553,7 @@ td .ball{width:29px;height:29px;font-size:11.5px}
     <p class="hint">5 dãy bốc ngẫu nhiên <b>có trọng số theo thống kê</b> (mỗi dãy một cách: số nóng, lâu chưa ra, toàn thời gian, điểm tổng hợp, pha trộn; dùng số kỳ gần nhất đặt ở tab Dự đoán). Giải trí thôi — bộ số nào cũng có cơ hội trúng như nhau! 😄</p>
     <div class="modes" id="chModes"></div>
     <label class="hint" style="display:flex;gap:8px;align-items:center;margin-top:0"><input type="checkbox" id="chDistinct"> 5 dãy không trùng số nào</label>
-    <div id="chLines"></div><div class="hint" id="chNote"></div>
+    <div id="chLines"></div><div class="hint" id="chNote"></div><div id="chBless"></div>
     <button class="btn red" id="chGo" style="width:100%"></button>
     <div class="row" style="justify-content:space-between;margin:18px 0 0"><b id="chHistTitle"></b><button class="chip" id="chClear">Xóa</button></div>
     <div class="hint" id="chSum"></div><div id="chHist"></div>
@@ -968,7 +984,7 @@ function lcStart() {
     if (L.shown >= per) lcSaveHist();
     renderCage(); return;
   }
-  L.sets = {g, list: lcGen(g)}; L.shown = 0; L.busy = true; renderCage();
+  L.sets = {g, list: lcGen(g), bless: TT_BLESS[Math.floor(rndU() * TT_BLESS.length)]}; L.shown = 0; L.busy = true; renderCage();
   L.iv = setInterval(() => document.querySelectorAll(".cgb.spin").forEach(el => { el.textContent = pad(1 + Math.floor(rndU() * G[g].max)); }), 70);
   for (let k = 0; k < per; k++) L.tm.push(setTimeout(() => {
     L.shown = k + 1; beep(500 + k * 80);
@@ -980,17 +996,18 @@ function renderCage() {
   const g = S.game, per = G[g].k + (G[g].bonus ? 1 : 0), cur = L.sets && L.sets.g === g ? L.sets.list : null, done = cur && L.shown >= per;
   $("#cgTitle").textContent = `🎰 Lồng cầu — ${G[g].name}`;
   $("#cgSnd").textContent = L.snd ? "🔊" : "🔇";
-  $("#cgModes").innerHTML = [["full", "⚡ Quay full"], ["step", "🎯 Từng quả"]].map(([m, t]) => `<button class="mode" data-m="${m}" aria-pressed="${L.mode === m}">${t}</button>`).join("");
+  $("#cgModes").innerHTML = [["full", "⚡ Quay full"], ["step", "🎯 Từng quả"], ["tt", "🧧 Thần Tài"]].map(([m, t]) => `<button class="mode" data-m="${m}" aria-pressed="${L.mode === m}">${t}</button>`).join("");
   $("#cgDistinct").checked = L.distinct;
   $("#cgLines").innerHTML = LC.map((_, i) => {
     const s = cur && cur[i], seq = s ? s.n.concat(s.b ? [s.b] : []) : [];
     const balls = Array.from({length: per}, (_, k) => (k === G[g].k ? '<span class="plus">+</span>' : "") +
-      (s && k < L.shown ? ball(seq[k], (k === G[g].k ? "gold " : "") + "sm") : `<span class="ball sm plain cgb${L.busy ? " spin" : ""}">?</span>`)).join("");
+      (s && k < L.shown ? ball(seq[k], (L.mode === "tt" ? "tt " : "") + (k === G[g].k ? "gold " : "") + "sm") : `<span class="ball sm plain${L.mode === "tt" ? " tt" : ""} cgb${L.busy ? " spin" : ""}">?</span>`)).join("");
     const acts = done ? `<div class="flex"><button class="copy" data-nums="${s.n.map(pad).join(" ")}">📋 Copy</button><button class="copy" data-cgchk="${i}">🔍 Dò</button><button class="copy" data-cgfav="${i}">💾 Lưu</button></div>` : "";
-    return `<div class="cgl"><div class="lt">🎲 Dãy ${i + 1}</div><div class="balls" style="margin:6px 0 8px">${balls}</div>${acts}</div>`;
+    return `<div class="cgl"><div class="lt">🎲 Dãy ${i + 1}</div><div class="balls${L.mode === "tt" ? " ttrow" : ""}" style="margin:6px 0 8px">${balls}</div>${acts}</div>`;
   }).join("");
   { const nt = nextDraw(g, nowVN()); $("#cgNote").textContent = done ? `🔎 Bộ số này sẽ tự đối chiếu với kết quả kỳ ${WD[nt.getDay()]}, ${pad(nt.getDate())}/${pad(nt.getMonth() + 1)} ${pad(nt.getHours())}:00 (xem ở Lịch sử bên dưới).` : ""; }
-  $("#cgGo").textContent = L.mode === "full" ? "🎰 QUAY 5 DÃY" : (!cur || done ? "🎯 QUAY QUẢ ĐẦU TIÊN" : `🎯 QUAY QUẢ ${L.shown + 1}/${per}`);
+  $("#cgBless").innerHTML = L.mode === "tt" && done && L.sets.bless ? `<div class="ttbless">🧧 ${L.sets.bless}<br><span style="font-weight:600;color:var(--mute)">Giải trí thôi — Thần Tài cũng bốc ngẫu nhiên như mọi dãy khác.</span></div>` : "";
+  $("#cgGo").textContent = L.mode === "tt" ? "🧧 THẦN TÀI BAN 5 DÃY" : L.mode === "full" ? "🎰 QUAY 5 DÃY" : (!cur || done ? "🎯 QUAY QUẢ ĐẦU TIÊN" : `🎯 QUAY QUẢ ${L.shown + 1}/${per}`);
   $("#cgGo").disabled = L.busy;
   const h = store("lc" + g) || [];
   $("#cgHistTitle").textContent = `Lịch sử & đối chiếu (${h.length}/40)`;
@@ -1042,7 +1059,7 @@ function lhStart() {
     if (LH.shown >= per) lhSaveHist();
     renderCageH(); return;
   }
-  LH.sets = {g, list: lhGen(g)}; LH.shown = 0; LH.busy = true; renderCageH();
+  LH.sets = {g, list: lhGen(g), bless: TT_BLESS[Math.floor(rndU() * TT_BLESS.length)]}; LH.shown = 0; LH.busy = true; renderCageH();
   LH.iv = setInterval(() => document.querySelectorAll(".chb.spin").forEach(el => { el.textContent = pad(1 + Math.floor(rndU() * G[g].max)); }), 70);
   for (let k = 0; k < per; k++) LH.tm.push(setTimeout(() => {
     LH.shown = k + 1; beep(500 + k * 80);
@@ -1054,17 +1071,18 @@ function renderCageH() {
   const g = S.game, per = G[g].k + (G[g].bonus ? 1 : 0), cur = LH.sets && LH.sets.g === g ? LH.sets.list : null, done = cur && LH.shown >= per;
   $("#chTitle").textContent = `🧠 Lồng cầu hard — ${G[g].name}`;
   $("#chSnd").textContent = LH.snd ? "🔊" : "🔇";
-  $("#chModes").innerHTML = [["full", "⚡ Quay full"], ["step", "🎯 Từng quả"]].map(([m, t]) => `<button class="mode" data-m="${m}" aria-pressed="${LH.mode === m}">${t}</button>`).join("");
+  $("#chModes").innerHTML = [["full", "⚡ Quay full"], ["step", "🎯 Từng quả"], ["tt", "🧧 Thần Tài"]].map(([m, t]) => `<button class="mode" data-m="${m}" aria-pressed="${LH.mode === m}">${t}</button>`).join("");
   $("#chDistinct").checked = LH.distinct;
   $("#chLines").innerHTML = LCH.map(([e, t], i) => {
     const s = cur && cur[i], seq = s ? s.n.concat(s.b ? [s.b] : []) : [];
     const balls = Array.from({length: per}, (_, k) => (k === G[g].k ? '<span class="plus">+</span>' : "") +
-      (s && k < LH.shown ? ball(seq[k], (k === G[g].k ? "gold " : "") + "sm") : `<span class="ball sm plain chb${LH.busy ? " spin" : ""}">?</span>`)).join("");
+      (s && k < LH.shown ? ball(seq[k], (LH.mode === "tt" ? "tt " : "") + (k === G[g].k ? "gold " : "") + "sm") : `<span class="ball sm plain${LH.mode === "tt" ? " tt" : ""} chb${LH.busy ? " spin" : ""}">?</span>`)).join("");
     const acts = done ? `<div class="flex"><button class="copy" data-nums="${s.n.map(pad).join(" ")}">📋 Copy</button><button class="copy" data-chchk="${i}">🔍 Dò</button><button class="copy" data-chfav="${i}">💾 Lưu</button></div>` : "";
-    return `<div class="cgl"><div class="lt">${e} Dãy ${i + 1} · ${t}</div><div class="balls" style="margin:6px 0 8px">${balls}</div>${acts}</div>`;
+    return `<div class="cgl"><div class="lt">${e} Dãy ${i + 1} · ${t}</div><div class="balls${LH.mode === "tt" ? " ttrow" : ""}" style="margin:6px 0 8px">${balls}</div>${acts}</div>`;
   }).join("");
   { const nt = nextDraw(g, nowVN()); $("#chNote").textContent = done ? `🔎 Bộ số này sẽ tự đối chiếu với kết quả kỳ ${WD[nt.getDay()]}, ${pad(nt.getDate())}/${pad(nt.getMonth() + 1)} ${pad(nt.getHours())}:00 (xem ở Lịch sử bên dưới).` : ""; }
-  $("#chGo").textContent = LH.mode === "full" ? "🎰 QUAY 5 DÃY" : (!cur || done ? "🎯 QUAY QUẢ ĐẦU TIÊN" : `🎯 QUAY QUẢ ${LH.shown + 1}/${per}`);
+  $("#chBless").innerHTML = LH.mode === "tt" && done && LH.sets.bless ? `<div class="ttbless">🧧 ${LH.sets.bless}<br><span style="font-weight:600;color:var(--mute)">Giải trí thôi — Thần Tài cũng bốc ngẫu nhiên như mọi dãy khác.</span></div>` : "";
+  $("#chGo").textContent = LH.mode === "tt" ? "🧧 THẦN TÀI BAN 5 DÃY" : LH.mode === "full" ? "🎰 QUAY 5 DÃY" : (!cur || done ? "🎯 QUAY QUẢ ĐẦU TIÊN" : `🎯 QUAY QUẢ ${LH.shown + 1}/${per}`);
   $("#chGo").disabled = LH.busy;
   const h = store("lh" + g) || [];
   $("#chHistTitle").textContent = `Lịch sử & đối chiếu (${h.length}/40)`;
@@ -1244,13 +1262,46 @@ function winLevel(list) {
   for (const {g, idx} of list) for (const it of drawReport(g, idx).good) lv = Math.max(lv, it.hits >= G[g].k - 1 ? 2 : 1);
   return lv;
 }
+/* ───────── Thần Tài: linh vật, lời chúc, mưa tiền vàng ───────── */
+function ttMascot(size = 40) {
+  return `<svg class="mascot" width="${size}" height="${size}" viewBox="0 0 64 64" role="img" aria-label="Thần Tài" style="width:${size}px;height:${size}px"><circle cx="32" cy="36" r="17" fill="#ffe2b8"/><path d="M15 38 Q16 60 32 61 Q48 60 49 38 Q44 50 32 50 Q20 50 15 38Z" fill="#fff"/><path d="M26 47 Q32 52 38 47" fill="none" stroke="#e5e5e5" stroke-width="1.5"/><circle cx="25" cy="35" r="2" fill="#3a1a12"/><circle cx="39" cy="35" r="2" fill="#3a1a12"/><circle cx="21.5" cy="40" r="3" fill="#ff9d8a" opacity=".7"/><circle cx="42.5" cy="40" r="3" fill="#ff9d8a" opacity=".7"/><path d="M27 41 Q32 45 37 41" fill="none" stroke="#b3361f" stroke-width="2" stroke-linecap="round"/><path d="M20 17 Q20 3 32 3 Q44 3 44 17 L44 24 L20 24Z" fill="#d9242b" stroke="#7a0f14" stroke-width="1.5"/><rect x="20" y="20" width="24" height="5" fill="#ffcb3a"/><circle cx="32" cy="9" r="3" fill="#ffcb3a" stroke="#b8860b"/><rect x="2" y="21" width="60" height="3" rx="1.5" fill="#3a1a12"/><circle cx="4" cy="22.5" r="3.5" fill="#d9242b" stroke="#3a1a12" stroke-width="1.5"/><circle cx="60" cy="22.5" r="3.5" fill="#d9242b" stroke="#3a1a12" stroke-width="1.5"/></svg>`;
+}
+const TT_BLESS = ["Lộc đến, tài đến, vận may rước về!", "Tiền vô như nước — chúc bạn kỳ này thật vui!", "Thần Tài ghé thăm, ngày mới nhiều may mắn!", "Cầu được ước thấy, vạn sự như ý!", "Phát tài phát lộc, an khang thịnh vượng!"];
+function coinRain(level) {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const cv = $("#fx"); if (!cv) return;
+  const dpr = Math.min(devicePixelRatio || 1, 2), W = cv.width = innerWidth * dpr, H = cv.height = innerHeight * dpr, c = cv.getContext("2d"), P = [];
+  const n = level > 1 ? 90 : 50;
+  for (let i = 0; i < n; i++) P.push({x: Math.random() * W, y: -Math.random() * H * 0.8, vy: (2 + Math.random() * 3) * dpr, vx: (Math.random() - .5) * dpr, r: (7 + Math.random() * 6) * dpr, ph: Math.random() * 6, sp: .08 + Math.random() * .1, env: Math.random() < 0.22});
+  cancelAnimationFrame(fxRaf); const t0 = performance.now();
+  const step = t => {
+    c.clearRect(0, 0, W, H); let alive = 0;
+    for (const p of P) { p.y += p.vy; p.x += p.vx; p.ph += p.sp; if (p.y > H + 30) continue; alive++;
+      c.save(); c.translate(p.x, p.y);
+      if (p.env) { c.rotate(Math.sin(p.ph) * .5); c.fillStyle = "#d9242b"; c.fillRect(-p.r * .7, -p.r, p.r * 1.4, p.r * 2); c.fillStyle = "#ffcb3a"; c.fillRect(-p.r * .7, -p.r * .2, p.r * 1.4, p.r * .3); }
+      else { c.scale(Math.abs(Math.cos(p.ph)) * .8 + .2, 1); c.beginPath(); c.arc(0, 0, p.r, 0, 7); c.fillStyle = "#ffcb3a"; c.fill(); c.lineWidth = 2 * dpr; c.strokeStyle = "#b8860b"; c.stroke(); c.beginPath(); c.arc(0, 0, p.r * .55, 0, 7); c.stroke(); }
+      c.restore(); }
+    if (t - t0 < 5200 && alive) fxRaf = requestAnimationFrame(step); else c.clearRect(0, 0, W, H);
+  };
+  fxRaf = requestAnimationFrame(step);
+}
+// Jackpot có người trúng → mưa tiền vàng (mỗi kỳ chỉ báo 1 lần trên máy này, chỉ với kỳ vừa quay)
+function checkJackpotRain() {
+  for (const g of GA()) {
+    const r = rowsOf(g)[0]; if (!r || !r.w) continue;
+    const hit = [r.w.j1, r.w.j2].some(x => x && x[0] > 0);
+    if (!hit || Date.now() - drawTs(r.d, r.h) > 36 * 3600e3 || store("jpseen" + g) === rk(r)) continue;
+    store("jpseen" + g, rk(r)); coinRain(2); toast(`🧧 ${G[g].name}: Jackpot có người trúng!`); break;
+  }
+}
 function showNotice(force) {
   const list = noticeDraws(force);
   if (!list.length) { if (force) toast("Chưa có kết quả để đối chiếu", true); return; }
   $("#nbody").innerHTML = noticeHtml(list); $("#notif").hidden = false;
   const lv = winLevel(list), box = $("#notif .nbox");
   box.classList.remove("pop", "jack"); void box.offsetWidth;
-  if (lv) { box.classList.add("pop"); if (lv > 1) box.classList.add("jack"); burst(lv); }
+  if (lv) { box.classList.add("pop"); if (lv > 1) box.classList.add("jack"); burst(lv); if (lv > 1) setTimeout(() => coinRain(2), 500);
+    $("#nbody").insertAdjacentHTML("afterbegin", `<div class="ttwin">${ttMascot(46)}<span>${lv > 1 ? "Thần Tài ban lộc lớn rồi!" : "Thần Tài gõ cửa, có số trúng!"}</span></div>`); }
 }
 function closeNotice() { $("#notif").hidden = true; for (const g of GS) { const rows = rowsOf(g); if (rows.length) store("seen" + g, rk(rows[0])); } }
 function notifyTickets() { settleTally(); showNotice(false); }
@@ -1291,6 +1342,8 @@ async function init() {
     else { document.body.innerHTML = "<p style='padding:30px'>Không tải được dữ liệu. Hãy chạy <code>python3 server.py</code> rồi mở http://localhost:8000</p>"; return; }
   }
   initTheme();
+  $("#mascotH").innerHTML = ttMascot(40);
+  checkJackpotRain();
   $("#gp").onclick = e => { const b = e.target.closest("button"); if (b) setGame(b.dataset.g); };
   $("#tabs").onclick = e => { const b = e.target.closest(".tab"); if (b) setTab(b.dataset.t); };
   $("#range").onchange = e => { S.range = e.target.value; renderStats(); };
