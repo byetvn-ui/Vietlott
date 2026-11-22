@@ -418,6 +418,7 @@ td .ball{width:29px;height:29px;font-size:11.5px}
 
 /* ── Thần Tài ── */
 .balls.ttrow{padding-top:14px;gap:6px!important;flex-wrap:nowrap}
+.flex.ttrow{margin-top:12px!important}
 .balls.ttrow .ball.sm{width:30px;height:30px;font-size:12.5px}
 .ball.tt{position:relative;overflow:visible}
 .ball.tt::before{content:"";position:absolute;left:50%;bottom:76%;width:140%;height:50%;transform:translateX(-50%);background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 44'%3E%3Crect x='2' y='27' width='96' height='5' rx='2.5' fill='%233a1a12'/%3E%3Ccircle cx='6' cy='29.5' r='5.5' fill='%23d9242b' stroke='%233a1a12' stroke-width='2'/%3E%3Ccircle cx='94' cy='29.5' r='5.5' fill='%23d9242b' stroke='%233a1a12' stroke-width='2'/%3E%3Cpath d='M26 34 Q26 5 50 5 Q74 5 74 34 Z' fill='%23d9242b' stroke='%237a0f14' stroke-width='2'/%3E%3Crect x='26' y='27' width='48' height='6' fill='%23ffcb3a'/%3E%3Ccircle cx='50' cy='13' r='4.5' fill='%23ffcb3a' stroke='%23b8860b' stroke-width='1.5'/%3E%3C/svg%3E") center bottom/contain no-repeat;pointer-events:none}
@@ -974,7 +975,7 @@ function lcReview(g, x) {
   const act = new Set(r.n), hits = x.s.map(s => s.n.filter(v => act.has(v)).length);
   return {r, act, hits, best: Math.max(...hits)};
 }
-function lcSaveHist() { const k = "lc" + S.game, h = store(k) || []; h.unshift({t: Date.now(), s: L.sets.list}); store(k, h.slice(0, 40)); }
+function lcSaveHist() { const k = "lc" + S.game, h = store(k) || []; h.unshift({t: Date.now(), s: L.sets.list, tt: L.mode === "tt"}); store(k, h.slice(0, 40)); }
 function lcStart() {
   if (L.busy) return;
   const g = S.game, per = G[g].k + (G[g].bonus ? 1 : 0);
@@ -1018,7 +1019,7 @@ function renderCage() {
     const rv = rvs[i], when = new Date(x.t).toLocaleString("vi");
     const head = rv ? `${when} · kỳ ${fmtDraw(rv.r)} · cao nhất ${rv.best}/${G[g].k}${rv.best >= HIT_MIN ? " 🎯" : ""}` : `${when} · ⏳ chờ kết quả kỳ tiếp theo`;
     const res = rv ? `<div class="hint" style="margin:6px 0 4px">Kết quả ${fmtDraw(rv.r)}:</div><div class="flex" style="gap:5px">${ballsHtml(rv.r, "sm")}</div><div class="hint" style="margin:4px 0 8px">${setInfo(rv.r.n)}</div>` : "";
-    const lines = x.s.map((s, k) => `<div class="flex" style="gap:5px;margin-top:6px">${s.n.map(v => ball(v, "sm" + (rv ? (rv.act.has(v) ? " hit" : " miss") : ""))).join("")}${s.b ? '<span class="plus">+</span>' + ball(s.b, "gold sm" + (rv && rv.r.b ? (s.b === rv.r.b ? " hit" : " miss") : "")) : ""}</div><div class="pc" style="font-size:13.5px">Dãy ${k + 1}${rv ? " · trúng " + rv.hits[k] + "/" + G[g].k + (rv.hits[k] >= HIT_MIN ? " 🎯" : "") : ""} · ${setInfo(s.n)}</div>`).join("");
+    const lines = x.s.map((s, k) => `<div class="flex${x.tt ? " ttrow" : ""}" style="gap:5px;margin-top:6px">${s.n.map(v => ball(v, (x.tt ? "tt " : "") + "sm" + (rv ? (rv.act.has(v) ? " hit" : " miss") : ""))).join("")}${s.b ? '<span class="plus">+</span>' + ball(s.b, (x.tt ? "tt " : "") + "gold sm" + (rv && rv.r.b ? (s.b === rv.r.b ? " hit" : " miss") : "")) : ""}</div><div class="pc" style="font-size:13.5px">Dãy ${k + 1}${rv ? " · trúng " + rv.hits[k] + "/" + G[g].k + (rv.hits[k] >= HIT_MIN ? " 🎯" : "") : ""} · ${setInfo(s.n)}</div>`).join("");
     return `<details${i === 0 ? " open" : ""}><summary>${head}</summary>${res}${lines}</details>`;
   }).join("") : '<div class="hint">Chưa có lịch sử quay</div>';
 }
@@ -1049,7 +1050,7 @@ function lhGen(g) {
   return list;
 }
 function lhStop() { LH.tm.forEach(clearTimeout); LH.tm = []; clearInterval(LH.iv); LH.busy = false; }
-function lhSaveHist() { const k = "lh" + S.game, h = store(k) || []; h.unshift({t: Date.now(), s: LH.sets.list}); store(k, h.slice(0, 40)); }
+function lhSaveHist() { const k = "lh" + S.game, h = store(k) || []; h.unshift({t: Date.now(), s: LH.sets.list, tt: LH.mode === "tt"}); store(k, h.slice(0, 40)); }
 function lhStart() {
   if (LH.busy) return;
   const g = S.game, per = G[g].k + (G[g].bonus ? 1 : 0);
@@ -1093,7 +1094,7 @@ function renderCageH() {
     const rv = rvs[i], when = new Date(x.t).toLocaleString("vi");
     const head = rv ? `${when} · kỳ ${fmtDraw(rv.r)} · cao nhất ${rv.best}/${G[g].k}${rv.best >= HIT_MIN ? " 🎯" : ""}` : `${when} · ⏳ chờ kết quả kỳ tiếp theo`;
     const res = rv ? `<div class="hint" style="margin:6px 0 4px">Kết quả ${fmtDraw(rv.r)}:</div><div class="flex" style="gap:5px">${ballsHtml(rv.r, "sm")}</div><div class="hint" style="margin:4px 0 8px">${setInfo(rv.r.n)}</div>` : "";
-    const lines = x.s.map((s, k) => `<div class="flex" style="gap:5px;margin-top:6px">${s.n.map(v => ball(v, "sm" + (rv ? (rv.act.has(v) ? " hit" : " miss") : ""))).join("")}${s.b ? '<span class="plus">+</span>' + ball(s.b, "gold sm" + (rv && rv.r.b ? (s.b === rv.r.b ? " hit" : " miss") : "")) : ""}</div><div class="pc" style="font-size:13.5px">Dãy ${k + 1}${rv ? " · trúng " + rv.hits[k] + "/" + G[g].k + (rv.hits[k] >= HIT_MIN ? " 🎯" : "") : ""} · ${setInfo(s.n)}</div>`).join("");
+    const lines = x.s.map((s, k) => `<div class="flex${x.tt ? " ttrow" : ""}" style="gap:5px;margin-top:6px">${s.n.map(v => ball(v, (x.tt ? "tt " : "") + "sm" + (rv ? (rv.act.has(v) ? " hit" : " miss") : ""))).join("")}${s.b ? '<span class="plus">+</span>' + ball(s.b, (x.tt ? "tt " : "") + "gold sm" + (rv && rv.r.b ? (s.b === rv.r.b ? " hit" : " miss") : "")) : ""}</div><div class="pc" style="font-size:13.5px">Dãy ${k + 1}${rv ? " · trúng " + rv.hits[k] + "/" + G[g].k + (rv.hits[k] >= HIT_MIN ? " 🎯" : "") : ""} · ${setInfo(s.n)}</div>`).join("");
     return `<details${i === 0 ? " open" : ""}><summary>${head}</summary>${res}${lines}</details>`;
   }).join("") : '<div class="hint">Chưa có lịch sử quay</div>';
 }
