@@ -146,6 +146,22 @@ body{background:#1b1411}
 .hlrow td{background:#4a3b12}.slot{background:#3b2c24;color:#8a7566}td{border-bottom-color:#3b2c24}.meter{background:#3b2c24}.tier{border-bottom-color:#4d3b30}
 }
 @media(max-width:460px){.ball{width:38px;height:38px;font-size:15px}.nums{gap:5px}.tabs{grid-template-columns:repeat(3,1fr)}.tab:last-child:nth-child(3n+1){grid-column:1/-1}.tab{font-size:14px;padding:10px 0}.tab .e{font-size:20px}}
+/* ── gọn mắt hơn + hiệu ứng trúng giải ── */
+.dataline{margin:0 2px 6px;font-size:13.5px}
+.rule{font-size:12.5px;border-top:0;padding-top:0;margin-top:2px}
+.live{gap:10px}
+.lc{padding:11px 12px}
+.live .balls{gap:4px;margin:8px 0 5px;flex-wrap:wrap}
+.live .ball{width:33px;height:33px;font-size:13.5px}
+.live .balls .plus{margin:0 -1px}
+.lc .dt{font-size:12.5px;line-height:1.5}
+.lc .wn summary{margin:3px 0;font-size:13px}
+.lc .nx{margin-top:2px;font-size:12px;padding-top:5px;border-top:1px dashed var(--line)}
+#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:99999}
+.nbox.pop{animation:popin .45s cubic-bezier(.2,1.4,.4,1)}
+.nbox.jack{box-shadow:0 0 0 4px #ffc233,0 0 40px 8px rgba(255,170,0,.55)}
+@keyframes popin{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+@media(prefers-reduced-motion:reduce){.nbox.pop{animation:none}}
 </style>
 </head>
 <body>
@@ -168,7 +184,7 @@ body{background:#1b1411}
   <div class="card">
     <div class="flex" style="justify-content:space-between;margin-bottom:10px">
       <div><h2 style="margin:0">📡 Kết quả mới nhất</h2>
-        <div class="hint" style="margin:2px 0 0">Quay 18:00 · 6/55: T3-T5-T7 · 6/45: T4-T6-CN · 5/35: mỗi ngày 13:00 &amp; 21:00</div></div>
+        <div class="hint" style="margin:2px 0 0">Quay 18:00 (6/55: T3-5-7 · 6/45: T4-6-CN) · 5/35: 13:00 &amp; 21:00</div></div>
       <button class="btn" id="syncBtn" hidden>🔄 Kiểm tra ngay</button>
     </div>
     <div class="live" id="live"></div>
@@ -281,6 +297,7 @@ body{background:#1b1411}
   <div class="foot">Nguồn dữ liệu: ketquadientoan.com (chính) và minhngoc.net.vn / minhchinh.com (dự phòng, đối chiếu chéo). Trang cá nhân phi thương mại, <b>không phải trang chính thức của Vietlott</b> — kết quả chính thức xem tại vietlott.vn. Chỉ dành cho người từ 18 tuổi; xổ số là ngẫu nhiên, hãy chơi có trách nhiệm.</div>
 </div>
 <button class="fab" id="fab" aria-label="Lên đầu trang">▲</button>
+<canvas id="fx"></canvas>
 <div class="notif" id="notif" hidden role="dialog" aria-modal="true" aria-label="Thông báo kết quả"><div class="nbox"><div id="nbody"></div><button class="btn red" id="nclose" style="width:100%;margin-top:12px">Đã xem</button></div></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -940,10 +957,45 @@ function noticeHtml(list) {
     return `<div style="margin-bottom:14px"><h3 style="margin:0;font-size:18px;color:var(--red)">🔔 ${G[g].name} · ${w} ${fmtDraw(r)} · kỳ #${kyNo(g, r, idx)}</h3><div class="flex" style="gap:5px;margin:8px 0 2px">${ballsHtml(r, "sm")}</div><div class="hint" style="margin:2px 0 0">${setInfo(r.n)}</div>${body}</div>`;
   }).join("");
 }
+// Hiệu ứng pháo hoa/confetti: level 1 = trúng từ 3 số, level 2 = trúng cao (từ K-1 số trở lên)
+let fxRaf = 0;
+function burst(level) {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const cv = $("#fx"); if (!cv) return;
+  const dpr = Math.min(devicePixelRatio || 1, 2), W = cv.width = innerWidth * dpr, H = cv.height = innerHeight * dpr, c = cv.getContext("2d");
+  const cols = ["#ff3b30", "#ffc233", "#22a35a", "#3a78de", "#ff7ab6", "#fff"], P = [];
+  const shots = level > 1 ? 6 : 3, per = level > 1 ? 46 : 34;
+  for (let k = 0; k < shots; k++) setTimeout(() => {
+    const x = (0.15 + Math.random() * 0.7) * W, y = (0.2 + Math.random() * 0.3) * H;
+    for (let i = 0; i < per; i++) { const a = Math.PI * 2 * i / per + Math.random() * 0.2, v = (3 + Math.random() * 6) * dpr;
+      P.push({x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 2 * dpr, life: 1, col: cols[(Math.random() * cols.length) | 0], r: (2 + Math.random() * 3) * dpr, star: Math.random() < 0.15}); }
+  }, k * 260);
+  for (let i = 0; i < (level > 1 ? 120 : 60); i++) P.push({x: Math.random() * W, y: -Math.random() * H * 0.4, vx: (Math.random() - .5) * 2 * dpr, vy: (2 + Math.random() * 3) * dpr, life: 1.6, col: cols[(Math.random() * cols.length) | 0], r: (3 + Math.random() * 4) * dpr, rect: true, rot: Math.random() * 6});
+  cancelAnimationFrame(fxRaf); const t0 = performance.now();
+  const step = t => {
+    c.clearRect(0, 0, W, H);
+    for (const p of P) { p.x += p.vx; p.y += p.vy; p.vy += 0.12 * dpr; p.vx *= 0.99; p.life -= 0.009; if (p.life <= 0) continue;
+      c.globalAlpha = Math.min(1, p.life); c.fillStyle = p.col;
+      if (p.rect) { p.rot += .1; c.save(); c.translate(p.x, p.y); c.rotate(p.rot); c.fillRect(-p.r, -p.r / 2, p.r * 2, p.r); c.restore(); }
+      else { c.beginPath(); c.arc(p.x, p.y, p.r, 0, 7); c.fill(); } }
+    c.globalAlpha = 1;
+    if (t - t0 < 4200 && P.some(p => p.life > 0)) fxRaf = requestAnimationFrame(step); else c.clearRect(0, 0, W, H);
+  };
+  fxRaf = requestAnimationFrame(step);
+  try { navigator.vibrate && navigator.vibrate(level > 1 ? [80, 60, 80, 60, 160] : [80]); } catch (e) {}
+}
+function winLevel(list) {
+  let lv = 0;
+  for (const {g, idx} of list) for (const it of drawReport(g, idx).good) lv = Math.max(lv, it.hits >= G[g].k - 1 ? 2 : 1);
+  return lv;
+}
 function showNotice(force) {
   const list = noticeDraws(force);
   if (!list.length) { if (force) toast("Chưa có kết quả để đối chiếu", true); return; }
   $("#nbody").innerHTML = noticeHtml(list); $("#notif").hidden = false;
+  const lv = winLevel(list), box = $("#notif .nbox");
+  box.classList.remove("pop", "jack"); void box.offsetWidth;
+  if (lv) { box.classList.add("pop"); if (lv > 1) box.classList.add("jack"); burst(lv); }
 }
 function closeNotice() { $("#notif").hidden = true; for (const g of GS) { const rows = rowsOf(g); if (rows.length) store("seen" + g, rk(rows[0])); } }
 function notifyTickets() { settleTally(); showNotice(false); }
@@ -957,6 +1009,9 @@ async function pullStatic() {
     if (gs.length) {
       DATA = j; renderTop(); setTab(S.tab); notifyTickets(gs);
       toast("🎉 Có kết quả mới: " + gs.map(g => `${G[g].name} ${fmtDraw(rowsOf(g)[0])} → ${rowsOf(g)[0].n.map(pad).join(" ")}${rowsOf(g)[0].b ? " + " + pad(rowsOf(g)[0].b) : ""}`).join(" | "));
+    } else {  // số kỳ không đổi nhưng jackpot / số người trúng giải có thể vừa được bot bổ sung
+      const sig = d => JSON.stringify(GS.map(g => (d.games[g] ? d.games[g].rows : []).slice(0, 4)));
+      if (sig(j) !== sig(DATA)) { DATA = j; renderLive(); if (S.tab === "hist") setTab("hist"); }
     }
   } catch (e) {}
 }
