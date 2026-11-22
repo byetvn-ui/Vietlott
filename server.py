@@ -310,6 +310,26 @@ def parse_source(html_text, g):
     return out
 
 
+W_TIERS = {
+    "655": [("Jackpot 1", "j1"), ("Jackpot 2", "j2"), ("Giải nhất", "m5"), ("Giải nhì", "m4"), ("Giải ba", "m3")],
+    "645": [("Jackpot", "j1"), ("Giải nhất", "m5"), ("Giải nhì", "m4"), ("Giải ba", "m3")],
+    "535": [("Độc đắc", "j1"), ("Giải nhất", "g1"), ("Giải nhì", "g2"), ("Giải ba", "g3"), ("Giải tư", "g4"), ("Giải năm", "g5"), ("Giải kk", "kk")],
+}
+
+
+def parse_winners(g, text):
+    """Đọc bảng 'Giải | Số lượng | Giá trị' -> {hạng: [số lượng giải, giá trị mỗi giải (đ)]}.
+    Phải đủ mọi hạng, thiếu hạng nào thì trả None (tránh ghi dữ liệu dở dang)."""
+    out, pos = {}, 0
+    for label, key in W_TIERS[g]:
+        m = re.search(re.escape(label) + r"\b\s*(\d{1,3}(?:[.,]\d{3})*)\s+(\d{1,3}(?:[.,]\d{3})+)", text[pos:], re.I)
+        if not m:
+            return None
+        out[key] = [int(re.sub(r"\D", "", m.group(1))), int(re.sub(r"\D", "", m.group(2)))]
+        pos += m.end()
+    return out
+
+
 MN_DATE = re.compile(r"Ngày quay thưởng\s*(\d{2})/(\d{2})/(\d{4})")
 
 
@@ -341,7 +361,11 @@ def parse_minhngoc(html_text, g):
         jm = re.search(r"Jackpot(?:\s*1)?\b.{0,60}?(\d{1,3}(?:[.,]\d{3}){2,})", seg[nm.end():], re.S)
         jack = jack_fmt(int(re.sub(r"\D", "", jm.group(1)))) if jm else ""
         seen.add(iso)
-        out.append(dict(d=iso, n=main, b=ns[cfg["main"]] if cfg["bonus"] else None, j=jack))
+        row = dict(d=iso, n=main, b=ns[cfg["main"]] if cfg["bonus"] else None, j=jack)
+        w = parse_winners(g, seg[nm.end():])
+        if w:
+            row["w"] = w
+        out.append(row)
     return out
 
 
@@ -396,15 +420,18 @@ def parse_mc535(html_text, g="535"):
     t = _text_of(html_text)
     out, seen = [], set()
 
-    def add(iso, h, nums, big):
+    def add(iso, h, nums, big, w=None):
         if (iso, h) in seen:
             return
         r = _row535(iso, h, nums, jack_fmt(int(big.replace(",", ""))))
         if r:
+            if w:
+                r["w"] = w
             seen.add((iso, h))
             out.append(r)
     for m in MC535_TOP.finditer(t):
-        add("%s-%s-%s" % (m.group(3), m.group(2), m.group(1)), int(m.group(4)), [int(x) for x in m.group(5).split()], m.group(6))
+        add("%s-%s-%s" % (m.group(3), m.group(2), m.group(1)), int(m.group(4)), [int(x) for x in m.group(5).split()], m.group(6),
+            parse_winners("535", t[m.end(): m.end() + 900]))   # khối kết quả mới nhất kèm bảng số lượng giải
     for m in MC535_ROW.finditer(t):
         d5 = m.group(5)
         add("20%s-%s-%s" % (m.group(3), m.group(2), m.group(1)), int(m.group(4)),
@@ -485,7 +512,7 @@ def sync(g):
                 log("%s: thêm kỳ %s  %s%s  %s  (%d nguồn)" % (
                     GAMES[g]["name"], d, " ".join("%02d" % x for x in row["n"]),
                     (" + %02d" % row["b"]) if row["b"] else "", row["j"], len(vs)))
-            fixed = backfill_jackpots(g, res)
+            fixed = backfill_jackpots(g, res) + merge_winners(g, res)
             if problem:
                 if fixed:
                     build_data()
@@ -509,8 +536,47 @@ def sync(g):
 _cache = {}
 
 
+WINNERS_FILE = os.path.join(BASE, "winners.json")
+
+
+def load_winners():
+    try:
+        with open(WINNERS_FILE, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:  # noqa
+        return {}
+
+
+def save_winners(d):
+    tmp = WINNERS_FILE + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(d, f, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        f.write("\n")
+    os.replace(tmp, WINNERS_FILE)
+
+
+def merge_winners(g, res):
+    """Số người trúng giải thường được công bố SAU bộ số: mỗi lần chạy, lấy bảng từ nguồn và cập nhật winners.json
+    (ghi đè khi nguồn đổi số liệu, vì lúc đầu số lượng giải có thể chưa đủ). Chỉ lưu cho các kỳ đã có trong .ods."""
+    wall = load_winners()
+    gw = wall.setdefault(g, {})
+    known = {rowkey(g, r) for r in read_ods(g)}
+    changed = 0
+    for src in res.values():
+        for k, r in src.items():
+            w = r.get("w")
+            if w and k in known and gw.get(k) != w:
+                gw[k] = w
+                changed += 1
+                log("%s: cập nhật số người trúng giải kỳ %s" % (GAMES[g]["name"], k))
+    if changed:
+        save_winners(wall)
+    return changed
+
+
 def load_games():
     out = {}
+    W = load_winners()
     for g, cfg in GAMES.items():
         p = ods_path(g)
         mt = os.path.getmtime(p)
@@ -519,7 +585,8 @@ def load_games():
             c = (mt, read_ods(g))
             _cache[g] = c
         out[g] = dict(name=cfg["name"], max=cfg["maxn"], bonus=cfg["bonus"], days=list(cfg["days"]), k=cfg["main"],
-                      bmax=cfg.get("bmax", cfg["maxn"]), hours=list(hrs(g)), rows=c[1])
+                      bmax=cfg.get("bmax", cfg["maxn"]), hours=list(hrs(g)),
+                      rows=[dict(r, w=W[g][rowkey(g, r)]) if rowkey(g, r) in W.get(g, {}) else r for r in c[1]])
     return out
 
 

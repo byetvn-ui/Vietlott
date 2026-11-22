@@ -129,6 +129,7 @@ details{margin-top:14px}summary{cursor:pointer;font-weight:800;color:var(--red)}
 .fab{position:fixed;right:16px;bottom:18px;width:54px;height:54px;border-radius:50%;border:0;background:linear-gradient(135deg,#e3262b,#ff5533);color:#fff;font-size:20px;box-shadow:0 8px 18px rgba(227,38,43,.4);cursor:pointer;z-index:10}
 .notif{position:fixed;inset:0;background:rgba(20,10,5,.6);display:flex;align-items:flex-end;justify-content:center;z-index:50;padding:12px}.nbox{background:var(--card);border:2px solid var(--line);border-radius:26px 26px 20px 20px;width:100%;max-width:520px;max-height:86vh;overflow:auto;padding:18px;box-shadow:0 -8px 30px rgba(0,0,0,.3)}.nrow{border-top:1px solid var(--line);padding:8px 0}
 .hlrow td{background:#fff3c4}
+.wn summary{cursor:pointer;font-weight:800;font-size:14px;margin:6px 0;color:var(--red)}.wtab{width:100%;border-collapse:collapse;font-size:13.5px;margin:4px 0}.wtab th{font-size:11.5px;text-align:right}.wtab th:first-child{text-align:left}.wtab td{padding:5px 4px}
 .ball.hit{box-shadow:0 0 0 3px #ffc233}.ball.miss{opacity:.3}
 .xt{border:2px solid var(--line);border-radius:20px;padding:12px 14px;margin-bottom:12px}.xt>b{font-weight:900}
 .bars{display:flex;gap:6px;height:84px;margin-top:8px}.bars>div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;font-size:12px;font-weight:700;color:var(--mute)}
@@ -305,6 +306,19 @@ const pad = n => String(n).padStart(2, "0");
 const fmtDate = iso => { const [y,m,d] = iso.split("-"); return `${d}/${m}/${y}`; };
 const wdOf = iso => { const [y,m,d] = iso.split("-").map(Number); return WD[new Date(Date.UTC(y,m-1,d)).getUTCDay()]; };
 const rowsOf = g => DATA.games[g] ? DATA.games[g].rows : [];
+const fmtN = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+const wName = (g, k) => (TIERS(g).find(x => x[0] === k) || [0, k])[1].replace(/ \(.*\)/, "");
+// bảng "Số người trúng giải" (số lượng giải + giá trị giải) giống app Vietlott; r.w do bot lấy từ trang nguồn sau khi có kết quả
+function winnersTable(g, w) {
+  const rows = TIERS(g).filter(([k]) => w[k]).map(([k]) => `<tr><td>${wName(g, k)}</td><td style="text-align:right;font-weight:800">${fmtN(w[k][0])}</td><td style="text-align:right">${fmtN(w[k][1])}</td></tr>`).join("");
+  const tot = TIERS(g).reduce((a, [k]) => a + (w[k] ? w[k][0] : 0), 0);
+  return `<table class="wtab"><thead><tr><th>Giải thưởng</th><th>Số lượng giải</th><th>Giá trị giải (đ)</th></tr></thead><tbody>${rows}</tbody></table><div class="pc" style="font-size:13px">Tổng ${fmtN(tot)} giải. Giá trị ${wName(g, "j1")} là giá trị tích lũy, các giải khác là giá trị mỗi giải.</div>`;
+}
+function winnersBlock(g, r, compact) {
+  if (r.w) return `<details class="wn"><summary>👥 Số người trúng giải${r.w.j1 && r.w.j1[0] > 0 ? " · 🎉 " + r.w.j1[0] + " " + wName(g, "j1") : ""}</summary>${winnersTable(g, r.w)}</details>`;
+  if (!compact && Date.now() - drawTs(r.d, r.h) < 36 * 3600e3) return '<div class="dt">⏳ Số người trúng giải: đang cập nhật…</div>';
+  return "";
+}
 const rk = r => r.d + (r.h ? "T" + pad(r.h) : "");                               // khóa 1 kỳ (5/35 có thêm giờ)
 // Số kỳ: 6/45 và 6/55 = số thứ tự trong dữ liệu (dữ liệu bắt đầu từ kỳ #1).
 // 5/35 = đếm theo lịch quay cố định (2 kỳ/ngày) từ kỳ #1 = 13h 29/06/2025, nên vẫn đúng số chính thức dù nguồn lịch sử thiếu 1 kỳ cũ.
@@ -351,7 +365,7 @@ function renderLive() {
       <div class="balls">${ballsHtml(r)}</div>
       <div class="dt">Kỳ #${kyNo(g, r, 0)} · ${setInfo(r.n)}</div>
       <div class="dt">Jackpot${g === "655" ? " 1" : ""}: <b style="color:var(--ink)">${esc(r.j) || (Date.now() - drawTs(r.d, r.h) < 36 * 3600e3 ? "⏳ đang cập nhật…" : "—")}</b></div>
-      <div class="nx"></div></div>`, nx];
+      ${winnersBlock(g, r)}<div class="nx"></div></div>`, nx];
   });
   const shell = parts.map(x => x[0]).join("");
   if (shell !== lastShell) { $("#live").innerHTML = shell; lastShell = shell; }
@@ -617,7 +631,8 @@ function parsePaste(txt) {
 /* ───────── Kết quả ───────── */
 const hsDefault = g => ({g, from: 0, n: 50, y: "", m: "", d: ""});
 const histRowHtml = (r, hl, no) => `<tr${hl ? ' class="hlrow"' : ""}><td style="white-space:nowrap;font-weight:800;font-size:14px">${wdOf(r.d)}<br>${fmtDate(r.d)}${r.h ? "<br>" + r.h + "h" : ""}<br><span style="color:var(--mute);font-weight:700">Kỳ #${no}</span></td>
-    <td><div class="flex" style="gap:5px">${ballsHtml(r, "sm")}</div><div class="pc" style="font-size:13.5px">${setInfo(r.n)}</div></td><td style="text-align:right;font-weight:800;font-size:14px;white-space:nowrap">${esc(r.j)}</td></tr>`;
+    <td><div class="flex" style="gap:5px">${ballsHtml(r, "sm")}</div><div class="pc" style="font-size:13.5px">${setInfo(r.n)}</div></td><td style="text-align:right;font-weight:800;font-size:14px;white-space:nowrap">${esc(r.j)}</td></tr>`
+  + (r.w ? `<tr class="wrow${hl ? " hlrow" : ""}"><td colspan="3" style="padding-top:0">${winnersBlock(S.game, r, true)}</td></tr>` : "");
 function renderHist() {
   const g = S.game, rows = rowsOf(g), H = S.hs && S.hs.g === g ? S.hs : (S.hs = hsDefault(g));
   $("#hsTitle").textContent = `🗂️ Kết quả — ${G[g].name}`;
