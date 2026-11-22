@@ -49,6 +49,15 @@ a{color:var(--red);font-weight:800}
 .badge{display:inline-block;font-size:12px;font-weight:800;padding:2px 10px;border-radius:99px;background:var(--cream);color:var(--mute)}
 .badge.new{background:#22a35a;color:#fff}.badge.wait{background:var(--gold2);color:#4a2e1f;animation:pulse 1.3s infinite}
 @keyframes pulse{50%{opacity:.55}}
+.wh{font-size:13.5px;font-weight:900;color:var(--ink);margin:10px 0 4px}
+.wt{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
+.wt th{color:var(--mute);font-weight:800;text-align:right;padding:3px 4px;border-bottom:2px solid var(--line)}
+.wt td{padding:5px 4px;border-bottom:1px solid var(--line);text-align:right;font-weight:700}
+.wt th:first-child,.wt td:first-child{text-align:left;font-weight:800;white-space:nowrap}
+.wt td.m{color:var(--mute);font-size:11px;white-space:nowrap}
+.wt td:last-child{white-space:nowrap}
+.wt tr.hit td{background:#fff0c2;color:var(--red);font-weight:900}
+.wsub{font-size:12px;color:var(--mute);font-weight:700;margin-top:4px}
 .btn{border:2px solid var(--line);background:#fff;color:var(--ink);border-radius:99px;padding:8px 16px;font:800 14px "Nunito",sans-serif;cursor:pointer}
 .btn:disabled{opacity:.5;cursor:default}
 .btn.red{background:linear-gradient(135deg,#e3262b,#ff5533);color:#fff;border-color:transparent;font-size:17px;padding:11px 24px;box-shadow:0 6px 14px rgba(227,38,43,.28)}
@@ -129,7 +138,6 @@ details{margin-top:14px}summary{cursor:pointer;font-weight:800;color:var(--red)}
 .fab{position:fixed;right:16px;bottom:18px;width:54px;height:54px;border-radius:50%;border:0;background:linear-gradient(135deg,#e3262b,#ff5533);color:#fff;font-size:20px;box-shadow:0 8px 18px rgba(227,38,43,.4);cursor:pointer;z-index:10}
 .notif{position:fixed;inset:0;background:rgba(20,10,5,.6);display:flex;align-items:flex-end;justify-content:center;z-index:50;padding:12px}.nbox{background:var(--card);border:2px solid var(--line);border-radius:26px 26px 20px 20px;width:100%;max-width:520px;max-height:86vh;overflow:auto;padding:18px;box-shadow:0 -8px 30px rgba(0,0,0,.3)}.nrow{border-top:1px solid var(--line);padding:8px 0}
 .hlrow td{background:#fff3c4}
-.wn summary{cursor:pointer;font-weight:800;font-size:14px;margin:6px 0;color:var(--red)}.wtab{width:100%;border-collapse:collapse;font-size:13.5px;margin:4px 0}.wtab th{font-size:11.5px;text-align:right}.wtab th:first-child{text-align:left}.wtab td{padding:5px 4px}
 .ball.hit{box-shadow:0 0 0 3px #ffc233}.ball.miss{opacity:.3}
 .xt{border:2px solid var(--line);border-radius:20px;padding:12px 14px;margin-bottom:12px}.xt>b{font-weight:900}
 .bars{display:flex;gap:6px;height:84px;margin-top:8px}.bars>div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;font-size:12px;font-weight:700;color:var(--mute)}
@@ -306,19 +314,6 @@ const pad = n => String(n).padStart(2, "0");
 const fmtDate = iso => { const [y,m,d] = iso.split("-"); return `${d}/${m}/${y}`; };
 const wdOf = iso => { const [y,m,d] = iso.split("-").map(Number); return WD[new Date(Date.UTC(y,m-1,d)).getUTCDay()]; };
 const rowsOf = g => DATA.games[g] ? DATA.games[g].rows : [];
-const fmtN = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-const wName = (g, k) => (TIERS(g).find(x => x[0] === k) || [0, k])[1].replace(/ \(.*\)/, "");
-// bảng "Số người trúng giải" (số lượng giải + giá trị giải) giống app Vietlott; r.w do bot lấy từ trang nguồn sau khi có kết quả
-function winnersTable(g, w) {
-  const rows = TIERS(g).filter(([k]) => w[k]).map(([k]) => `<tr><td>${wName(g, k)}</td><td style="text-align:right;font-weight:800">${fmtN(w[k][0])}</td><td style="text-align:right">${fmtN(w[k][1])}</td></tr>`).join("");
-  const tot = TIERS(g).reduce((a, [k]) => a + (w[k] ? w[k][0] : 0), 0);
-  return `<table class="wtab"><thead><tr><th>Giải thưởng</th><th>Số lượng giải</th><th>Giá trị giải (đ)</th></tr></thead><tbody>${rows}</tbody></table><div class="pc" style="font-size:13px">Tổng ${fmtN(tot)} giải. Giá trị ${wName(g, "j1")} là giá trị tích lũy, các giải khác là giá trị mỗi giải.</div>`;
-}
-function winnersBlock(g, r, compact) {
-  if (r.w) return `<details class="wn"><summary>👥 Số người trúng giải${r.w.j1 && r.w.j1[0] > 0 ? " · 🎉 " + r.w.j1[0] + " " + wName(g, "j1") : ""}</summary>${winnersTable(g, r.w)}</details>`;
-  if (!compact && Date.now() - drawTs(r.d, r.h) < 36 * 3600e3) return '<div class="dt">⏳ Số người trúng giải: đang cập nhật…</div>';
-  return "";
-}
 const rk = r => r.d + (r.h ? "T" + pad(r.h) : "");                               // khóa 1 kỳ (5/35 có thêm giờ)
 // Số kỳ: 6/45 và 6/55 = số thứ tự trong dữ liệu (dữ liệu bắt đầu từ kỳ #1).
 // 5/35 = đếm theo lịch quay cố định (2 kỳ/ngày) từ kỳ #1 = 13h 29/06/2025, nên vẫn đúng số chính thức dù nguồn lịch sử thiếu 1 kỳ cũ.
@@ -348,6 +343,19 @@ function nextDraw(g, now) {
     if (G[g].days.includes(d.getDay()) && d > now) return d;
   }
 }
+const winsOf = g => (DATA && DATA.winners && DATA.winners[g]) || {};
+function winTable(w) {
+  const rows = w.prizes.map(p => {
+    const jp = /jackpot|độc đắc/i.test(p.p);
+    return `<tr class="${p.c > 0 && jp ? "hit" : ""}"><td>${esc(p.p)}${p.c > 0 && jp ? " 🎉" : ""}</td><td class="m">${esc(p.m)}</td><td>${vi(p.c)}</td><td>${vi(p.v)}</td></tr>`;
+  }).join("");
+  return `<table class="wt"><thead><tr><th>Giải</th><th>Trùng</th><th>Số người</th><th>Giá trị</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+function winBlock(g, r) {
+  const w = winsOf(g)[r.h ? r.d + "-" + pad(r.h) : r.d];
+  return `<div class="wh">👥 Số người trúng giải</div>` + (w ? winTable(w)
+    : `<div class="wsub">${Date.now() - drawTs(r.d, r.h) < 36 * 3600e3 ? "⏳ đang chờ nguồn cập nhật" : "chưa có số liệu cho kỳ này"}</div>`);
+}
 function renderLive() {
   const now = nowVN(), today = isoOf(now);
   const parts = GA().map(g => {
@@ -365,7 +373,8 @@ function renderLive() {
       <div class="balls">${ballsHtml(r)}</div>
       <div class="dt">Kỳ #${kyNo(g, r, 0)} · ${setInfo(r.n)}</div>
       <div class="dt">Jackpot${g === "655" ? " 1" : ""}: <b style="color:var(--ink)">${esc(r.j) || (Date.now() - drawTs(r.d, r.h) < 36 * 3600e3 ? "⏳ đang cập nhật…" : "—")}</b></div>
-      ${winnersBlock(g, r)}<div class="nx"></div></div>`, nx];
+      ${winBlock(g, r)}
+      <div class="nx"></div></div>`, nx];
   });
   const shell = parts.map(x => x[0]).join("");
   if (shell !== lastShell) { $("#live").innerHTML = shell; lastShell = shell; }
@@ -631,8 +640,7 @@ function parsePaste(txt) {
 /* ───────── Kết quả ───────── */
 const hsDefault = g => ({g, from: 0, n: 50, y: "", m: "", d: ""});
 const histRowHtml = (r, hl, no) => `<tr${hl ? ' class="hlrow"' : ""}><td style="white-space:nowrap;font-weight:800;font-size:14px">${wdOf(r.d)}<br>${fmtDate(r.d)}${r.h ? "<br>" + r.h + "h" : ""}<br><span style="color:var(--mute);font-weight:700">Kỳ #${no}</span></td>
-    <td><div class="flex" style="gap:5px">${ballsHtml(r, "sm")}</div><div class="pc" style="font-size:13.5px">${setInfo(r.n)}</div></td><td style="text-align:right;font-weight:800;font-size:14px;white-space:nowrap">${esc(r.j)}</td></tr>`
-  + (r.w ? `<tr class="wrow${hl ? " hlrow" : ""}"><td colspan="3" style="padding-top:0">${winnersBlock(S.game, r, true)}</td></tr>` : "");
+    <td><div class="flex" style="gap:5px">${ballsHtml(r, "sm")}</div><div class="pc" style="font-size:13.5px">${setInfo(r.n)}</div></td><td style="text-align:right;font-weight:800;font-size:14px;white-space:nowrap">${esc(r.j)}</td></tr>`;
 function renderHist() {
   const g = S.game, rows = rowsOf(g), H = S.hs && S.hs.g === g ? S.hs : (S.hs = hsDefault(g));
   $("#hsTitle").textContent = `🗂️ Kết quả — ${G[g].name}`;
@@ -894,6 +902,7 @@ async function pull(manual) {
     const j = await r.json();
     const before = DATA ? GS.map(g => rowsOf(g).length) : null;
     DATA = j; STATUS = j.status; serverMode = true;
+    if (before) renderLive();
     const after = GS.map(g => rowsOf(g).length), gs = GS.filter((g, i) => before && after[i] !== before[i]);
     if (before && gs.length) {
       renderTop(); setTab(S.tab); notifyTickets(gs);
@@ -954,6 +963,8 @@ async function pullStatic() {
     const txt = (await r.text()).trim().replace(/^window\.LOTTO_DATA=/, "").replace(/;$/, "");
     const j = JSON.parse(txt);
     const before = GS.map(g => rowsOf(g).length), after = GS.map(g => j.games[g] ? j.games[g].rows.length : 0), gs = GS.filter((g, i) => after[i] !== before[i]);
+    const sig = d => JSON.stringify([d.winners || {}, GS.map(g => (d.games[g] ? d.games[g].rows : []).slice(0, 3))]);
+    if (!gs.length && sig(j) !== sig(DATA)) { DATA = j; renderLive(); }
     if (gs.length) {
       DATA = j; renderTop(); setTab(S.tab); notifyTickets(gs);
       toast("🎉 Có kết quả mới: " + gs.map(g => `${G[g].name} ${fmtDraw(rowsOf(g)[0])} → ${rowsOf(g)[0].n.map(pad).join(" ")}${rowsOf(g)[0].b ? " + " + pad(rowsOf(g)[0].b) : ""}`).join(" | "));
