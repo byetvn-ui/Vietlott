@@ -514,8 +514,10 @@ TIER_KEY = {
 def winners_for_row(g, r, wins):
     """Bảng số người trúng của một kỳ dạng {mã giải: [số lượng, giá trị]} (hoặc None nếu chưa có)."""
     w = wins.get(g, {}).get(r["d"] + ("-%02d" % r["h"] if r.get("h") else ""))
-    if not w:
+    if not isinstance(w, dict) or not w:
         return None
+    if "prizes" not in w:  # bản ghi dạng cũ đã ở sẵn dạng {mã giải: [số lượng, giá trị]}
+        return {k: v for k, v in w.items() if isinstance(v, list) and len(v) == 2} or None
     out = {}
     for p in w["prizes"]:
         k = TIER_KEY[g].get(re.sub(r"\s+", " ", p["p"]).lower())
