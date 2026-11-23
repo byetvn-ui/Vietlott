@@ -777,10 +777,11 @@ const METHODS = [
 ];
 const setInfo = s => `Tổng ${s.reduce((a, b) => a + b, 0)} · ${s.filter(x => x % 2 === 0).length} chẵn / ${s.filter(x => x % 2).length} lẻ`;
 const PRED_N = 20;
-const getN = () => Math.max(5, Math.min(100000, Math.round(+store("predN")) || PRED_N));
+// Số kỳ gần nhất tính riêng cho từng game (game chưa chỉnh thì dùng giá trị chung cũ nếu có)
+const getN = (g = S.game) => Math.max(5, Math.min(100000, Math.round(+(store("predN" + g) || store("predN"))) || PRED_N));
 const hashSeed = str => { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
 // 7 bộ số cho kỳ kế tiếp: chỉ phụ thuộc dữ liệu đã có + ngày kỳ cuối => mở lại app vẫn y nguyên đến khi có kỳ mới
-function predSets(g, rows, N = getN()) {
+function predSets(g, rows, N = getN(g)) {
   const max = G[g].max, k = G[g].k, d = detMethods(rows, max, Math.min(N, rows.length), k), rnd = mulberry32(hashSeed(g + rk(rows[0])));
   return {pos: d.pos, hot: d.hot, cold: d.cold, all: d.all, bal: d.bal,
     wr: weightedPick(d.fN.map(x => x + 1), max, rnd, k), rnd: weightedPick(new Array(max + 1).fill(1), max, rnd, k)};
@@ -788,7 +789,7 @@ function predSets(g, rows, N = getN()) {
 // Số phụ / số đặc biệt cho từng phương pháp (6/55: số phụ 1–55; 5/35: số đặc biệt 1–12), cùng cách tính với bộ số chính
 // nhưng trên chuỗi số phụ của các kỳ trước. 6/55: số phụ luôn khác 6 số chính của chính bộ đó (truyền `sets`).
 // Dùng bộ random riêng (hạt giống khác) để không làm đổi các bộ số chính; cố định theo kỳ như bộ số chính.
-function predBonus(g, rows, N = getN(), sets = null) {
+function predBonus(g, rows, N = getN(g), sets = null) {
   if (!G[g].bonus) return null;
   const bm = G[g].bmax, n = Math.min(N, rows.length), w = rows.slice(0, n), dist = G[g].bdist;
   const fN = new Array(bm + 1).fill(0), fA = fN.slice(), gap = new Array(bm + 1).fill(-1);
@@ -808,7 +809,7 @@ function predBonus(g, rows, N = getN(), sets = null) {
 function predReview(g, K) {
   const rows = rowsOf(g), out = [];
   for (let t = 0; t < K && t + 60 < rows.length; t++) {
-    const sets = predSets(g, rows.slice(t + 1)), bs = predBonus(g, rows.slice(t + 1), getN(), sets), act = new Set(rows[t].n), hits = {}, bhit = {};
+    const sets = predSets(g, rows.slice(t + 1)), bs = predBonus(g, rows.slice(t + 1), getN(g), sets), act = new Set(rows[t].n), hits = {}, bhit = {};
     for (const [k] of METHODS) { hits[k] = sets[k].filter(x => act.has(x)); bhit[k] = !!(bs && bs[k] === rows[t].b); }
     out.push({r: rows[t], sets, hits, bs, bhit});
   }
@@ -834,7 +835,7 @@ function renderPred() {
   $("#prTitle").textContent = `🎯 Dự đoán số — ${G[g].name}`;
   $("#predM").innerHTML = METHODS.map(([k, n]) => `<option value="${k}" ${S.predM === k ? "selected" : ""}>${n}</option>`).join("");
   const sets = predSets(g, rows);
-  const m = METHODS.find(x => x[0] === S.predM), s = sets[S.predM], bs = predBonus(g, rows, getN(), sets), pb = bs ? bs[S.predM] : null;
+  const m = METHODS.find(x => x[0] === S.predM), s = sets[S.predM], bs = predBonus(g, rows, getN(g), sets), pb = bs ? bs[S.predM] : null;
   $("#predDesc").textContent = m[2] + ` (dựa trên ${N} kỳ gần nhất)` + (bs ? (G[g].pickB ? " Quả vàng = số đặc biệt (1–12), chọn theo cùng phương pháp trên các số đặc biệt của các kỳ trước." : " Quả vàng = số phụ (1–55, khác 6 số chính), chọn theo cùng phương pháp trên các số phụ của các kỳ trước.") : "");
   $("#predRes").innerHTML = `<b style="font-size:18px">Bộ số gợi ý cho kỳ tiếp theo</b>
     <div class="hint" style="margin:2px 0 6px">Cố định từ kết quả ${fmtDraw(rows[0])}, chỉ đổi khi có kỳ mới.</div>
@@ -1028,7 +1029,7 @@ function renderCage() {
 const LH = {mode: "full", distinct: false, sets: null, shown: 0, busy: false, snd: !!store("lcSnd"), tm: [], iv: 0};
 const LCH = [["🔥", "Số nóng"], ["⏳", "Lâu chưa ra"], ["📚", "Toàn thời gian"], ["⚖️", "Điểm tổng hợp"], ["🔀", "Nóng + lâu chưa ra"]];
 function lhWeights(g) {
-  const rows = rowsOf(g), max = G[g].max, N = Math.max(5, Math.min(rows.length, getN()));
+  const rows = rowsOf(g), max = G[g].max, N = Math.max(5, Math.min(rows.length, getN(g)));
   const fN = new Array(max + 1).fill(0), fA = fN.slice(), gap = new Array(max + 1).fill(-1);
   rows.forEach((r, i) => { for (const n of r.n) { fA[n]++; if (i < N) fN[n]++; if (gap[n] < 0) gap[n] = i; } });
   for (let n = 1; n <= max; n++) if (gap[n] < 0) gap[n] = rows.length;
@@ -1106,11 +1107,11 @@ function anyPrizeProb(g) { const K = G[g].k, mx = G[g].max; let p = 0; for (let 
 const tierChips = (g, t) => TIERS(g).filter(([k]) => t[k]).map(([k, n]) => `<span class="chip" style="cursor:default">${n.replace(/ \(.*\)/, "")}: <b>${t[k]}</b></span>`).join("") || '<span class="hint" style="margin:0">chưa trúng giải nào</span>';
 const TLC = {};
 function predTally(g, T) {      // dựng lại 7 bộ dự đoán trước từng kỳ trong quá khứ rồi đếm hạng giải
-  const rows = rowsOf(g), ck = [g, T, getN(), rk(rows[0])].join("|");
+  const rows = rowsOf(g), ck = [g, T, getN(g), rk(rows[0])].join("|");
   if (TLC[ck]) return TLC[ck];
   const out = {}; METHODS.forEach(([k]) => out[k] = {tiers: {}, any: 0});
   for (let t = 0; t < T; t++) {
-    const past = rows.slice(t + 1), sets = predSets(g, past), bs = predBonus(g, past, getN(), sets);
+    const past = rows.slice(t + 1), sets = predSets(g, past), bs = predBonus(g, past, getN(g), sets);
     for (const [k] of METHODS) { const key = tierFor(g, new Set(sets[k]), bs ? bs[k] : null, rows[t]); if (key) { out[k].tiers[key] = (out[k].tiers[key] || 0) + 1; out[k].any++; } }
   }
   return TLC[ck] = {T, out};
@@ -1199,7 +1200,7 @@ const HIT_MIN = 3;   // báo các dãy trùng từ 3 số trở lên
 // mọi bộ số "có thể trúng" ở một kỳ: dự đoán (dựng lại đúng bộ trước kỳ đó), lồng cầu, lồng cầu hard, vé đã dò, bộ yêu thích
 function drawReport(g, idx) {
   const rows = rowsOf(g), r = rows[idx], act = new Set(r.n), items = [];
-  if (idx + 60 < rows.length) { const sets = predSets(g, rows.slice(idx + 1)), bs = predBonus(g, rows.slice(idx + 1), getN(), sets); METHODS.forEach(([k]) => items.push({src: "Dự đoán · " + pname(k), n: sets[k], b: bs ? bs[k] : undefined})); }
+  if (idx + 60 < rows.length) { const sets = predSets(g, rows.slice(idx + 1)), bs = predBonus(g, rows.slice(idx + 1), getN(g), sets); METHODS.forEach(([k]) => items.push({src: "Dự đoán · " + pname(k), n: sets[k], b: bs ? bs[k] : undefined})); }
   [["lc", "Lồng cầu", null], ["lh", "Lồng cầu hard", LCH]].forEach(([key, label, names]) => (store(key + g) || []).forEach(e => {
     const rv = lcReview(g, e); if (rv && rk(rv.r) === rk(r)) e.s.forEach((s, i) => items.push({src: `${label} · Dãy ${i + 1}${names ? " (" + names[i][1] + ")" : ""}`, n: s.n, b: s.b}));
   }));
@@ -1369,10 +1370,10 @@ async function init() {
   $("#modes").onclick = e => { const b = e.target.closest(".mode"); if (b) { S.mode = b.dataset.m; renderStats(); } };
   // Số kỳ: áp dụng khi gõ xong (0,6s) hoặc rời ô; không vẽ lại nếu giá trị không đổi (tránh mất cú bấm nút ngay sau khi gõ)
   let nTimer = 0;
-  const applyN = el => { const v = Math.max(5, Math.min(100000, Math.round(+el.value) || PRED_N)); if (v !== Math.min(getN(), rowsOf(S.game).length)) { store("predN", v); renderPred(); } else if (document.activeElement !== el) el.value = v; };
+  const applyN = el => { const v = Math.max(5, Math.min(100000, Math.round(+el.value) || PRED_N)); if (v !== Math.min(getN(), rowsOf(S.game).length)) { store("predN" + S.game, v); renderPred(); } else if (document.activeElement !== el) el.value = v; };
   $("#predN").oninput = e => { clearTimeout(nTimer); const v = Math.round(+e.target.value); if (v >= 5) nTimer = setTimeout(() => applyN(e.target), 600); };
   $("#predN").onchange = e => { clearTimeout(nTimer); applyN(e.target); e.target.value = Math.min(getN(), rowsOf(S.game).length); };
-  $("#predAllBtn").onclick = () => { store("predN", 100000); renderPred(); };
+  $("#predAllBtn").onclick = () => { store("predN" + S.game, 100000); renderPred(); };
   $("#predM").onchange = e => { S.predM = e.target.value; renderPred(); };
   document.addEventListener("click", async e => {
     const c = e.target.closest(".copy[data-nums]");
