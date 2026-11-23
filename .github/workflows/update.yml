@@ -20,10 +20,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Kiểm tra bộ đọc dữ liệu
+        if: hashFiles('tests/**') != ''
+        run: python3 -m unittest discover -s tests -t . -v
       - name: Lấy kết quả mới
         id: sync
         continue-on-error: true
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python3 server.py --sync-once
+      - name: Phân tích AI (tuỳ chọn)
+        if: hashFiles('analyze.py') != ''
+        continue-on-error: true
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python3 analyze.py
       - name: Lưu thay đổi
         run: |
           git config user.name "vietlott-bot"
