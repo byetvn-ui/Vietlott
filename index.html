@@ -426,7 +426,7 @@ td .ball{width:29px;height:29px;font-size:11.5px}
 .ball.tt.gold:not(.plain){background:radial-gradient(circle at 32% 26%,#fff3b0,#ffcf3a 60%,#d19600);color:#4a2e00;text-shadow:none}
 .ball.tt.plain{border-style:dashed}
 .ball.tt.plain::before{opacity:.55;filter:grayscale(.4)}
-.mascot{display:inline-block;vertical-align:-9px;margin-right:6px;width:40px;height:40px}
+.mascot{display:inline-block;vertical-align:-10px;margin-right:6px;width:44px;height:44px}
 .ttbless{font-size:13.5px;color:var(--ink);background:var(--warm);border:2px dashed var(--warmb);border-radius:12px;padding:8px 12px;margin:8px 0;font-weight:700}
 .ttwin{display:flex;align-items:center;gap:10px;margin-bottom:10px;background:var(--warm);border:2px dashed var(--warmb);border-radius:14px;padding:8px 12px;font-weight:900;color:var(--red)}
 .ttwin svg{flex:none;animation:ttbob 1s ease-in-out infinite}
@@ -1264,9 +1264,26 @@ function winLevel(list) {
   return lv;
 }
 /* ───────── Thần Tài: linh vật, lời chúc, mưa tiền vàng ───────── */
-function ttMascot(size = 40) {
-  return `<svg class="mascot" width="${size}" height="${size}" viewBox="0 0 64 64" role="img" aria-label="Thần Tài" style="width:${size}px;height:${size}px"><circle cx="32" cy="36" r="17" fill="#ffe2b8"/><path d="M15 38 Q16 60 32 61 Q48 60 49 38 Q44 50 32 50 Q20 50 15 38Z" fill="#fff"/><path d="M26 47 Q32 52 38 47" fill="none" stroke="#e5e5e5" stroke-width="1.5"/><circle cx="25" cy="35" r="2" fill="#3a1a12"/><circle cx="39" cy="35" r="2" fill="#3a1a12"/><circle cx="21.5" cy="40" r="3" fill="#ff9d8a" opacity=".7"/><circle cx="42.5" cy="40" r="3" fill="#ff9d8a" opacity=".7"/><path d="M27 41 Q32 45 37 41" fill="none" stroke="#b3361f" stroke-width="2" stroke-linecap="round"/><path d="M20 17 Q20 3 32 3 Q44 3 44 17 L44 24 L20 24Z" fill="#d9242b" stroke="#7a0f14" stroke-width="1.5"/><rect x="20" y="20" width="24" height="5" fill="#ffcb3a"/><circle cx="32" cy="9" r="3" fill="#ffcb3a" stroke="#b8860b"/><rect x="2" y="21" width="60" height="3" rx="1.5" fill="#3a1a12"/><circle cx="4" cy="22.5" r="3.5" fill="#d9242b" stroke="#3a1a12" stroke-width="1.5"/><circle cx="60" cy="22.5" r="3.5" fill="#d9242b" stroke="#3a1a12" stroke-width="1.5"/></svg>`;
+function ttMascot(size = 40, full = false) {
+  if (window.TT_IMG) return `<img class="mascot" src="thantai.png" alt="Thần Tài" style="height:${Math.round(size * 1.35)}px;width:auto;margin-top:-4px;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))">`;
+  const body = full ? `<path d="M30 80 Q26 128 44 136 L76 136 Q94 128 90 80 Q60 70 30 80Z" fill="#d9242b" stroke="#a5161d" stroke-width="1.5"/><path d="M34 126 Q60 132 86 126" fill="none" stroke="#ffcb3a" stroke-width="3.5"/><ellipse cx="48" cy="140" rx="11" ry="4.5" fill="#2a1a14"/><ellipse cx="72" cy="140" rx="11" ry="4.5" fill="#2a1a14"/>` : `<path d="M26 84 Q24 120 40 124 L80 124 Q96 120 94 84 Q60 72 26 84Z" fill="#d9242b" stroke="#a5161d" stroke-width="1.5"/>`;
+  return `<svg class="mascot" width="${size}" height="${size}" viewBox="0 0 120 ${full ? 146 : 122}" role="img" aria-label="Thần Tài" style="width:${size}px;height:${size}px">
+<rect x="1.5" y="21" width="42" height="14" rx="7" fill="#d9242b" stroke="#ffcb3a" stroke-width="3"/><rect x="76.5" y="21" width="42" height="14" rx="7" fill="#d9242b" stroke="#ffcb3a" stroke-width="3"/><path d="M14 22l2 5 5 1.5-5 1.5-2 5-2-5-5-1.5 5-1.5z" fill="#ffcb3a"/><path d="M106 22l2 5 5 1.5-5 1.5-2 5-2-5-5-1.5 5-1.5z" fill="#ffcb3a"/>
+${body}
+<rect x="34" y="96" width="52" height="9" rx="2" fill="#ffcb3a" stroke="#b8860b" stroke-width="1"/><circle cx="60" cy="100.5" r="5.5" fill="#2fb56a" stroke="#ffcb3a" stroke-width="2"/>
+<circle cx="29" cy="52" r="7" fill="#ffd1a6"/><circle cx="91" cy="52" r="7" fill="#ffd1a6"/><ellipse cx="60" cy="50" rx="32" ry="30" fill="#ffe3c2" stroke="#f1c79c" stroke-width="1.5"/>
+<path d="M34 34 Q34 6 60 6 Q86 6 86 34 Z" fill="#e0262d" stroke="#8a1218" stroke-width="2"/><rect x="33" y="27" width="54" height="8" rx="4" fill="#ffcb3a" stroke="#b8860b" stroke-width="1.5"/><circle cx="60" cy="16" r="6" fill="#2fb56a" stroke="#ffcb3a" stroke-width="2.5"/><circle cx="58" cy="14" r="1.8" fill="#bff5d6"/>
+<circle cx="40" cy="60" r="6.5" fill="#ff9d8a" opacity=".65"/><circle cx="80" cy="60" r="6.5" fill="#ff9d8a" opacity=".65"/>
+<path d="M44 49 Q50 42 56 49" fill="none" stroke="#2a1a14" stroke-width="3.2" stroke-linecap="round"/><path d="M64 49 Q70 42 76 49" fill="none" stroke="#2a1a14" stroke-width="3.2" stroke-linecap="round"/><path d="M44 40 Q49 36 55 39M65 39 Q71 36 76 40" fill="none" stroke="#2a1a14" stroke-width="2.4" stroke-linecap="round"/>
+<ellipse cx="60" cy="56" rx="4" ry="3.2" fill="#f2b08c"/>
+<path d="M48 67 Q60 84 72 67 Q60 71 48 67Z" fill="#9b2c2c"/><path d="M50 67.5 Q60 71 70 67.5 Q60 70 50 67.5Z" fill="#fff"/><path d="M54 77 Q60 73 66 77 Q60 82 54 77Z" fill="#ff8a8a"/>
+<path d="M60 62 Q52 56 40 63 Q44 69 54 66 Q58 66 60 64 Q62 66 66 66 Q76 69 80 63 Q68 56 60 62Z" fill="#2a1a14"/><path d="M55 79 Q60 98 65 79 Q60 83 55 79Z" fill="#2a1a14"/>
+<path d="M24 90 Q60 120 96 90 L90 108 Q60 122 30 108Z" fill="#ffc933" stroke="#b8860b" stroke-width="2"/><ellipse cx="60" cy="90" rx="19" ry="10" fill="#ffe27a" stroke="#b8860b" stroke-width="2"/><path d="M48 87 Q54 82 62 84" fill="none" stroke="#fff6c9" stroke-width="2.5" stroke-linecap="round"/>
+<circle cx="30" cy="101" r="7.5" fill="#ffe3c2" stroke="#f1c79c"/><circle cx="90" cy="101" r="7.5" fill="#ffe3c2" stroke="#f1c79c"/>
+</svg>`;
 }
+// Muốn dùng ảnh Thần Tài của riêng bạn: bỏ file thantai.png (nền trong suốt) vào repo, web tự dùng ảnh đó thay cho hình vẽ.
+(() => { const im = new Image(); im.onload = () => { window.TT_IMG = true; try { $("#mascotH").innerHTML = ttMascot(44); } catch (e) {} }; im.src = "thantai.png"; })();
 const TT_BLESS = ["Lộc đến, tài đến, vận may rước về!", "Tiền vô như nước — chúc bạn kỳ này thật vui!", "Thần Tài ghé thăm, ngày mới nhiều may mắn!", "Cầu được ước thấy, vạn sự như ý!", "Phát tài phát lộc, an khang thịnh vượng!"];
 function coinRain(level) {
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -1302,7 +1319,7 @@ function showNotice(force) {
   const lv = winLevel(list), box = $("#notif .nbox");
   box.classList.remove("pop", "jack"); void box.offsetWidth;
   if (lv) { box.classList.add("pop"); if (lv > 1) box.classList.add("jack"); burst(lv); if (lv > 1) setTimeout(() => coinRain(2), 500);
-    $("#nbody").insertAdjacentHTML("afterbegin", `<div class="ttwin">${ttMascot(46)}<span>${lv > 1 ? "Thần Tài ban lộc lớn rồi!" : "Thần Tài gõ cửa, có số trúng!"}</span></div>`); }
+    $("#nbody").insertAdjacentHTML("afterbegin", `<div class="ttwin">${ttMascot(64, true)}<span>${lv > 1 ? "Thần Tài ban lộc lớn rồi!" : "Thần Tài gõ cửa, có số trúng!"}</span></div>`); }
 }
 function closeNotice() { $("#notif").hidden = true; for (const g of GS) { const rows = rowsOf(g); if (rows.length) store("seen" + g, rk(rows[0])); } }
 function notifyTickets() { settleTally(); showNotice(false); }
@@ -1343,7 +1360,7 @@ async function init() {
     else { document.body.innerHTML = "<p style='padding:30px'>Không tải được dữ liệu. Hãy chạy <code>python3 server.py</code> rồi mở http://localhost:8000</p>"; return; }
   }
   initTheme();
-  $("#mascotH").innerHTML = ttMascot(40);
+  $("#mascotH").innerHTML = ttMascot(44);
   checkJackpotRain();
   $("#gp").onclick = e => { const b = e.target.closest("button"); if (b) setGame(b.dataset.g); };
   $("#tabs").onclick = e => { const b = e.target.closest(".tab"); if (b) setTab(b.dataset.t); };
