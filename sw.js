@@ -1,5 +1,5 @@
 const C = "vietlott-v2", KEY = u => u.origin + u.pathname;
-self.addEventListener("install", e => e.waitUntil(caches.open(C).then(c => c.addAll(["./", "index.html", "data.js", "icon.svg"])).then(() => self.skipWaiting())));
+self.addEventListener("install", e => e.waitUntil(caches.open(C).then(c => c.addAll(["./", "index.html", "data.js", "icon.svg", "thantai.png"])).then(() => self.skipWaiting())));
 self.addEventListener("activate", e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== C).map(k => caches.delete(k)))).then(() => clients.claim())));
 // network-first: luôn lấy bản mới nhất, mất mạng thì dùng bản đã lưu
 self.addEventListener("fetch", e => {

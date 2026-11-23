@@ -459,6 +459,7 @@ td .ball{width:29px;height:29px;font-size:11.5px}
         <div class="hint" style="margin:2px 0 0">Quay 18:00 (6/55: T3-5-7 · 6/45: T4-6-CN) · 5/35: 13:00 &amp; 21:00</div></div>
       <button class="btn" id="syncBtn" hidden>🔄 Kiểm tra ngay</button>
     </div>
+    <div id="staleBar"></div><div id="jpAlert"></div>
     <div class="live" id="live"></div>
   </div>
 
@@ -658,6 +659,7 @@ function renderLive() {
   });
   const shell = parts.map(x => x[0]).join("");
   if (shell !== lastShell) { $("#live").innerHTML = shell; lastShell = shell; }
+  try { renderBars(now); } catch (e) {}
   const els = $("#live").querySelectorAll(".nx");
   parts.forEach((x, i) => { if (els[i] && els[i].innerHTML !== x[1]) els[i].innerHTML = x[1]; });
 }
@@ -702,6 +704,45 @@ function renderStats() {
     <td style="width:32%"><div class="meter"><i style="width:${(x.c / mx * 100).toFixed(1)}%"></i></div><div class="pc">${sub.length ? (x.c / sub.length * 100).toFixed(1) : 0}%</div></td></tr>`).join("");
   renderExtra(g, sub, G[g].max);
 }
+
+/* ───────── Cảnh báo dữ liệu đứng + ngưỡng jackpot ───────── */
+function renderBars(now) {
+  const stale = [];
+  for (const g of GA()) {
+    const r = rowsOf(g)[0]; if (!r || !G[g].days.includes(now.getDay())) continue;
+    const dueH = G[g].hours.filter(h => now.getHours() >= h + 3);   // quá giờ quay 3 tiếng
+    if (!dueH.length) continue;
+    const need = isoOf(now) + (r.h ? "T" + pad(Math.max(...dueH)) : "");
+    if (rk(r) < need) stale.push(G[g].name);
+  }
+  const sb = $("#staleBar"), sh = stale.length ? `<div class="hint" style="border:2px solid var(--red);border-radius:14px;padding:8px 12px;margin:0 0 10px">⚠️ Chưa có kết quả mới của ${stale.join(", ")} sau hơn 3 giờ kể từ giờ quay. Có thể nguồn chưa đăng hoặc bot đang lỗi — bấm "🔄 Tải lại" sau ít phút.</div>` : "";
+  if (sb && sb.innerHTML !== sh) sb.innerHTML = sh;
+  const al = [];
+  for (const g of GA()) {
+    const th = +store("jpTh" + g) || 0, r = rowsOf(g)[0];
+    if (th > 0 && r && r.jv >= th) al.push(`🔔 ${G[g].name}: jackpot ${esc(r.j)} đã vượt ngưỡng ${th} tỷ của bạn`);
+  }
+  const ah = al.map(x => `<div class="hint" style="border:2px solid var(--line);border-radius:14px;padding:8px 12px;margin:0 0 10px">${x}</div>`).join("");
+  const ae = $("#jpAlert"); if (ae && ae.innerHTML !== ah) ae.innerHTML = ah;
+}
+function jackpotCard(g) {
+  const rows = rowsOf(g).slice(0, 15), jn = G[g].bonus || g === "655" ? "j1" : "j1";
+  const body = rows.map(r => {
+    const w = r.w && r.w[jn] ? r.w[jn][0] : null;
+    return `<tr><td>${fmtDate(r.d)}${r.h ? " " + r.h + "h" : ""}</td><td>${esc(r.j) || "—"}</td><td>${w === null ? "—" : w > 0 ? "🎉 " + w : "0"}</td></tr>`;
+  }).join("");
+  const th = store("jpTh" + g) || "";
+  return `<div class="xt"><b>💰 Jackpot &amp; người trúng (15 kỳ gần nhất)</b>
+    <table style="margin-top:8px"><thead><tr><th>Kỳ</th><th>Jackpot</th><th>Trúng</th></tr></thead><tbody>${body}</tbody></table>
+    <div class="row" style="margin-top:8px"><label for="jpTh">🔔 Báo khi jackpot ≥</label><input id="jpTh" type="number" min="0" inputmode="numeric" value="${th}" placeholder="tỷ đồng" style="width:90px"> tỷ</div></div>`;
+}
+async function aiCard(g) {
+  try {
+    const r = await fetch("analysis.json?_=" + Date.now(), {cache: "no-store"}); if (!r.ok) return "";
+    const a = await r.json(), t = a[g] && a[g].text; if (!t) return "";
+    return `<div class="xt"><b>🤖 Phân tích AI</b><div class="pc" style="white-space:pre-wrap">${esc(t)}</div><div class="hint" style="margin-top:6px">Chỉ là nhận xét thống kê ${esc(a.updated || "")}. Xổ số hoàn toàn ngẫu nhiên — AI không thể dự đoán số.</div></div>`;
+  } catch (e) { return ""; }
+}
 function renderExtra(g, sub, max) {
   const n = sub.length, el = $("#extra"), K = G[g].k;
   if (!n) { el.innerHTML = ""; return; }
@@ -727,7 +768,9 @@ function renderExtra(g, sub, max) {
   <div class="xt"><b>➕ Tổng ${K} số</b><div class="pc">Trung bình ${avg} · 80% số kỳ nằm trong ${q(.1)}–${q(.9)}</div></div>
   <div class="xt"><b>🔗 Có số liền kề</b><div class="pc">${(cons / n * 100).toFixed(0)}% số kỳ có ít nhất 1 cặp số liền nhau (vd 17-18)</div></div>
   <div class="xt"><b>👫 Cặp hay đi cùng</b><div class="pc">${top.map(([k, c]) => `${pad(Math.floor(k / 100))}-${pad(k % 100)}: ${c} lần`).join(" · ")} — kỳ vọng mỗi cặp ≈ ${pe.toFixed(1)} lần</div></div>
-  ${spark ? `<div class="xt"><b>💰 Jackpot theo kỳ</b>${spark}</div>` : ""}`;
+  ${spark ? `<div class="xt"><b>💰 Jackpot theo kỳ</b>${spark}</div>` : ""}${jackpotCard(g)}<div id="aiBox"></div>`;
+  const thEl = $("#jpTh"); if (thEl) thEl.onchange = () => { store("jpTh" + g, thEl.value); renderBars(nowVN()); };
+  aiCard(g).then(h => { const b = $("#aiBox"); if (b && S.game === g) b.innerHTML = h; });
 }
 
 /* ───────── Dự đoán ───────── */
@@ -781,8 +824,11 @@ const PRED_N = 20;
 const getN = (g = S.game) => Math.max(5, Math.min(100000, Math.round(+(store("predN" + g) || store("predN"))) || PRED_N));
 const hashSeed = str => { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
 // 7 bộ số cho kỳ kế tiếp: chỉ phụ thuộc dữ liệu đã có + ngày kỳ cuối => mở lại app vẫn y nguyên đến khi có kỳ mới
+// Hạt giống riêng cho từng máy/trình duyệt: 2 cách ngẫu nhiên (có trọng số & thuần) khác nhau giữa các máy/repo,
+// nhưng trên cùng một máy vẫn cố định theo từng kỳ (mở lại app không đổi).
+const DEV_SALT = (() => { let v = store("devSalt"); if (!v || typeof v !== "string") { v = Math.random().toString(36).slice(2, 10); store("devSalt", v); } return v; })();
 function predSets(g, rows, N = getN(g)) {
-  const max = G[g].max, k = G[g].k, d = detMethods(rows, max, Math.min(N, rows.length), k), rnd = mulberry32(hashSeed(g + rk(rows[0])));
+  const max = G[g].max, k = G[g].k, d = detMethods(rows, max, Math.min(N, rows.length), k), rnd = mulberry32(hashSeed(g + rk(rows[0]) + DEV_SALT));
   return {pos: d.pos, hot: d.hot, cold: d.cold, all: d.all, bal: d.bal,
     wr: weightedPick(d.fN.map(x => x + 1), max, rnd, k), rnd: weightedPick(new Array(max + 1).fill(1), max, rnd, k)};
 }
@@ -799,7 +845,7 @@ function predBonus(g, rows, N = getN(g), sets = null) {
   const best = (f, k) => { const e = ex(k); let b = 0; for (let i = 1; i <= bm; i++) if (!e.has(i) && (b === 0 || f(i) > f(b))) b = i; return b; };   // hòa -> số nhỏ hơn
   const near = (v, k) => { const e = ex(k); v = Math.max(1, Math.min(bm, v)); for (let d = 0; d < bm; d++) { if (v + d <= bm && !e.has(v + d)) return v + d; if (v - d >= 1 && !e.has(v - d)) return v - d; } return v; };
   const zf = a => { const v = a.slice(1), m = v.reduce((x, y) => x + y, 0) / v.length, sd = Math.sqrt(v.reduce((x, y) => x + (y - m) ** 2, 0) / v.length) || 1; return a.map(x => (x - m) / sd); };
-  const zN = zf(fN), zA = zf(fA), zG = zf(gap), rnd = mulberry32(hashSeed(g + "B" + rk(rows[0])));
+  const zN = zf(fN), zA = zf(fA), zG = zf(gap), rnd = mulberry32(hashSeed(g + "B" + rk(rows[0]) + DEV_SALT));
   const pick = (wts, k) => { const e = ex(k); let tot = 0; for (let i = 1; i <= bm; i++) if (!e.has(i)) tot += wts[i]; let x = rnd() * tot, last = 1; for (let i = 1; i <= bm; i++) { if (e.has(i)) continue; last = i; x -= wts[i]; if (x <= 0) return i; } return last; };
   return {pos: near(Math.round(w.reduce((a, r) => a + (r.b || 0), 0) / n), "pos"),
     hot: best(i => fN[i] * 1000 + fA[i], "hot"), cold: best(i => gap[i], "cold"), all: best(i => fA[i], "all"), bal: best(i => .4 * zN[i] + .3 * zA[i] + .3 * zG[i], "bal"),

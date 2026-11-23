@@ -490,6 +490,10 @@ def sync_winners(only=None):
             d = cur.setdefault(g, {})
             for k, v in new.items():
                 if d.get(k) != v:
+                    if k not in d or "prizes" not in d.get(k, {}):
+                        for p in v["prizes"]:
+                            if p["c"] > 0 and re.match(r"(jackpot|độc đắc)", p["p"], re.I):
+                                note("🎉 %s kỳ %s: có %d người trúng %s (%s đ)" % (WIN_NAME[g], k, p["c"], p["p"], "{:,}".format(p["v"]).replace(",", ".")))
                     d[k] = v
                     changed = True
             for k in sorted(d, reverse=True)[WIN_KEEP:]:
@@ -524,6 +528,70 @@ def winners_for_row(g, r, wins):
         if k:
             out[k] = [p["c"], p["v"]]
     return out or None
+
+
+# ───────────────────────── Thông báo Telegram (tuỳ chọn) ─────────────────────────
+# Chỉ gửi khi có 2 biến môi trường TELEGRAM_BOT_TOKEN và TELEGRAM_CHAT_ID (đặt trong GitHub Secrets).
+NOTIFY_STATE = os.path.join(BASE, ".notify_state.json")
+NOTES = []  # tin nhắn gom trong một lượt chạy
+
+
+def notify_enabled():
+    return bool(os.environ.get("TELEGRAM_BOT_TOKEN") and os.environ.get("TELEGRAM_CHAT_ID"))
+
+
+def tg_send(text):
+    tok, chat = os.environ.get("TELEGRAM_BOT_TOKEN"), os.environ.get("TELEGRAM_CHAT_ID")
+    if not tok or not chat:
+        return False
+    base = os.environ.get("TELEGRAM_API", "https://api.telegram.org")
+    try:
+        data = json.dumps({"chat_id": chat, "text": text, "disable_web_page_preview": True}).encode()
+        req = Request("%s/bot%s/sendMessage" % (base, tok), data=data, headers={"Content-Type": "application/json"})
+        with urlopen(req, timeout=20) as r:
+            return r.status == 200
+    except Exception as e:  # noqa
+        log("Telegram: không gửi được - %s" % type(e).__name__)  # không in token
+        return False
+
+
+def note(text):
+    NOTES.append(text)
+
+
+def describe_row(g, r):
+    nums = " ".join("%02d" % x for x in r["n"]) + ((" + %02d" % r["b"]) if r.get("b") else "")
+    when = r["d"][8:] + "/" + r["d"][5:7] + (" %02dh" % r["h"] if r.get("h") else "")
+    return "%s %s: %s%s" % (GAMES[g]["name"], when, nums, ("  · " + r["j"]) if r.get("j") else "")
+
+
+def flush_notes():
+    """Gửi các tin đã gom; lỗi nguồn chỉ báo khi mới xuất hiện hoặc kéo dài > 6 giờ (tránh spam mỗi 5 phút)."""
+    if not notify_enabled():
+        NOTES.clear()
+        return
+    try:
+        with open(NOTIFY_STATE, encoding="utf-8") as f:
+            st = json.load(f)
+    except Exception:  # noqa
+        st = {}
+    old = json.dumps(st, sort_keys=True)
+    now = time.time()
+    for g in GAMES:
+        err = STATUS[g]["error"]
+        cur = st.get(g, {})
+        if err and (not cur.get("err") or now - cur.get("t", 0) > 6 * 3600):
+            note("⚠️ %s: bot gặp lỗi lấy kết quả - %s" % (GAMES[g]["name"], err[:200]))
+            st[g] = {"err": True, "t": now}
+        elif not err and cur.get("err"):
+            note("✅ %s: bot đã chạy lại bình thường" % GAMES[g]["name"])
+            st[g] = {"err": False, "t": now}
+    if NOTES and tg_send("\n".join(NOTES)):
+        log("đã gửi %d thông báo Telegram" % len(NOTES))
+    NOTES.clear()
+    if json.dumps(st, sort_keys=True) != old:
+        with open(NOTIFY_STATE, "w", encoding="utf-8") as f:
+            json.dump(st, f)
 
 
 def fetch_url(url):
@@ -606,6 +674,10 @@ def sync(g):
             st["last_added"] = added
             if added:
                 st["new_at"] = st["last_check"]
+                for r_ in read_ods(g)[:added][::-1]:
+                    note("🎰 " + describe_row(g, r_))
+            if fixed:
+                note("💰 %s: đã bổ sung jackpot cho %d kỳ" % (GAMES[g]["name"], fixed))
             if added or fixed:
                 build_data()
             return added
@@ -757,6 +829,7 @@ def main():
         n = {g: sync(g) for g in GAMES}
         sync_winners()
         build_data()
+        flush_notes()
         print("Đã thêm:", n)
         sys.exit(1 if any(STATUS[g]["error"] for g in GAMES) else 0)
 
