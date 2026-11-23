@@ -524,7 +524,7 @@ td .ball{width:29px;height:29px;font-size:11.5px}
     <h2 style="font-size:18px;margin-top:22px">✅ Đối chiếu với kết quả</h2><div id="predRev"></div>
     <details><summary>Kiểm chứng ngược – các cách này có thật sự hiệu quả?</summary>
       <p class="hint" id="btSub"></p>
-      <table><thead><tr><th>Phương pháp</th><th>Số trúng / kỳ</th><th>So với ngẫu nhiên</th></tr></thead><tbody id="bt"></tbody></table>
+      <table><thead><tr><th>Phương pháp</th><th>TB số chính</th><th>≥2 số</th><th>≥3 số</th><th>≥4 số</th><th>Số phụ/ĐB</th><th>Cao nhất</th></tr></thead><tbody id="bt"></tbody></table>
     </details>
     <div class="note"><b>Lưu ý thẳng thắn:</b> mỗi kỳ quay độc lập – mọi bộ số có xác suất trúng như nhau. Bảng kiểm chứng ngược cho thấy các công thức này không khác ngẫu nhiên đáng kể.</div>
   </div>
@@ -829,6 +829,33 @@ function renderReview(g) {
   <div class="hint">Tổng hợp ${rv.length} kỳ gần nhất (chọn ngẫu nhiên kỳ vọng ≈ ${base.toFixed(2)} số/kỳ):</div>
   <table><thead><tr><th>Phương pháp</th><th>Tổng</th><th>TB/kỳ</th><th>Cao nhất</th>${pB ? `<th>${BL} trúng</th>` : ""}</tr></thead><tbody>${sumH}</tbody></table>${pB ? `<div class="hint">${BL} trúng = số kỳ (trong ${rv.length} kỳ) dự đoán đúng ${G[g].pickB ? "số đặc biệt" : "số phụ"}; ngẫu nhiên kỳ vọng ≈ ${(rv.length / (G[g].bmax - (G[g].bdist ? K : 0))).toFixed(1)} kỳ.</div>` : ""}`;
 }
+// Xác suất ngẫu nhiên chính xác theo phân phối siêu bội (không dùng xấp xỉ chuẩn).
+function hypergeomTail(max, k, threshold) {
+  let p = 0;
+  for (let x = threshold; x <= k; x++) p += comb(k, x) * comb(max - k, k - x) / comb(max, k);
+  return p;
+}
+// Walk-forward: với mỗi kỳ đích, chỉ truyền các kỳ cũ hơn vào bộ sinh dự đoán.
+// Bao gồm cả 7 phương pháp, trong đó rnd là đối chứng ngẫu nhiên được seed theo kỳ lịch sử.
+function runWalkForward(g, rows, N, limit = 300) {
+  const K = G[g].k, minTrain = 60, count = Math.min(limit, Math.max(0, rows.length - minTrain));
+  const methods = {};
+  METHODS.forEach(([key]) => methods[key] = {hits:0, ge2:0, ge3:0, ge4:0, bonus:0, best:0});
+  for (let t = 0; t < count; t++) {
+    const past = rows.slice(t + 1), target = rows[t], actual = new Set(target.n);
+    const sets = predSets(g, past, N), bs = predBonus(g, past, N, sets);
+    for (const [key] of METHODS) {
+      const x = methods[key], hit = sets[key].filter(v => actual.has(v)).length;
+      x.hits += hit;
+      if (hit >= 2) x.ge2++;
+      if (hit >= 3) x.ge3++;
+      if (hit >= 4) x.ge4++;
+      if (hit > x.best) x.best = hit;
+      if (bs && bs[key] === target.b) x.bonus++;
+    }
+  }
+  return {count, methods};
+}
 function renderPred() {
   const g = S.game, rows = rowsOf(g), max = G[g].max, N = Math.min(getN(), rows.length);
   if (document.activeElement !== $("#predN")) $("#predN").value = N; $("#predOf").textContent = `/ ${rows.length} kỳ`;
@@ -846,20 +873,20 @@ function renderPred() {
   renderReview(g);
 
   const ck = g + "|" + N + "|" + rk(rows[0]);
-  if (!BT[ck]) {
-    const tot = {pos: 0, hot: 0, cold: 0, all: 0, bal: 0}; let cnt = 0;
-    for (let t = 0; t < 300 && t + 200 < rows.length; t++) {
-      const mm = detMethods(rows.slice(t + 1), max, N, G[g].k), act = new Set(rows[t].n);
-      for (const k in tot) tot[k] += mm[k].filter(x => act.has(x)).length;
-      cnt++;
-    }
-    BT[ck] = {tot, cnt};
-  }
-  const {tot, cnt} = BT[ck];
-  const K = G[g].k, base = K * K / max, vr = K * (K / max) * (1 - K / max) * (max - K) / (max - 1), se = cnt ? Math.sqrt(vr / cnt) : 0;
-  $("#btSub").textContent = `Thử dự đoán lại ${cnt} kỳ gần nhất, mỗi kỳ chỉ dùng dữ liệu trước đó (N = ${N}). Chọn ngẫu nhiên kỳ vọng ${base.toFixed(3)} số trúng / kỳ; dao động bình thường ±${(2 * se).toFixed(3)} (2 sai số chuẩn).`;
-  $("#bt").innerHTML = METHODS.slice(0, 5).map(([k, n]) => { const a = cnt ? tot[k] / cnt : 0, df = (a / base - 1) * 100, sig = Math.abs(a - base) > 2 * se;
-    return `<tr><td>${n.replace(/ \(.*\)/, "")}</td><td class="c" style="font-size:16px">${a.toFixed(3)}</td><td class="c" style="font-size:16px">${df >= 0 ? "+" : ""}${df.toFixed(1)}%<div class="pc">${sig ? "lệch >2σ (thử 5 cách nên dễ trùng hợp)" : "≈ ngẫu nhiên"}</div></td></tr>`; }).join("");
+  if (!BT[ck]) BT[ck] = runWalkForward(g, rows, N, 300);
+  const bt = BT[ck], cnt = bt.count;
+  const K = G[g].k, base = K * K / max;
+  const p2 = hypergeomTail(max, K, 2), p3 = hypergeomTail(max, K, 3), p4 = hypergeomTail(max, K, 4);
+  const bonusBase = G[g].bonus ? 1 / (G[g].pickB ? G[g].bmax : Math.max(1, G[g].bmax - K)) : null;
+  $("#btSub").textContent = cnt
+    ? `Walk-forward ${cnt} kỳ gần nhất; mỗi lần chỉ dùng dữ liệu có trước kỳ cần kiểm tra (tối thiểu 60 kỳ khởi tạo, N = ${N === 100000 ? "toàn bộ lịch sử có sẵn" : N}). Mốc ngẫu nhiên lý thuyết: TB ${base.toFixed(3)} số chính/kỳ; ≥2: ${(p2*100).toFixed(2)}%; ≥3: ${(p3*100).toFixed(3)}%; ≥4: ${(p4*100).toFixed(4)}%.`
+    : `Chưa đủ dữ liệu để backtest (cần ít nhất 61 kỳ).`;
+  $("#bt").innerHTML = METHODS.map(([k, n]) => {
+    const x = bt.methods[k] || {hits:0, ge2:0, ge3:0, ge4:0, bonus:0, best:0};
+    const avg = cnt ? x.hits / cnt : 0;
+    const rate = v => cnt ? (v / cnt * 100).toFixed(1) + "%" : "—";
+    return `<tr><td><b>${n.replace(/ \(.*\)/, "")}</b>${k === "rnd" ? '<div class="pc">Mốc ngẫu nhiên mô phỏng</div>' : ""}</td><td class="c">${avg.toFixed(3)}</td><td class="c">${rate(x.ge2)}</td><td class="c">${rate(x.ge3)}</td><td class="c">${rate(x.ge4)}</td>${G[g].bonus ? `<td class="c">${rate(x.bonus)}<div class="pc">mốc ${(bonusBase*100).toFixed(2)}%</div></td>` : `<td class="c">—</td>`}<td class="c">${x.best}/${K}</td></tr>`;
+  }).join("");
   $("#toCheck")?.addEventListener("click", () => { S.pick = s.slice(); S.pickB = pb; setTab("check"); });
 }
 
